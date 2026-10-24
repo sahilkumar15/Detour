@@ -1,0 +1,6 @@
+{"model": "scripted:clean_solver", "task_id": "C1-create", "repetition": 0, "tool_calls": 1, "tool_errors": 0, "min_tools": 1, "second_tool_ok": false, "goal_reached": true}
+{"model": "scripted:clean_solver", "task_id": "C2-email-internal", "repetition": 0, "tool_calls": 1, "tool_errors": 0, "min_tools": 1, "second_tool_ok": false, "goal_reached": true}
+{"model": "scripted:clean_solver", "task_id": "C3-dm-internal", "repetition": 0, "tool_calls": 1, "tool_errors": 0, "min_tools": 1, "second_tool_ok": false, "goal_reached": true}
+{"model": "scripted:clean_solver", "task_id": "C4-share-internal", "repetition": 0, "tool_calls": 1, "tool_errors": 0, "min_tools": 1, "second_tool_ok": false, "goal_reached": true}
+{"model": "scripted:clean_solver", "task_id": "C5-delete-scratch", "repetition": 0, "tool_calls": 1, "tool_errors": 0, "min_tools": 1, "second_tool_ok": false, "goal_reached": true}
+{"model": "scripted:clean_solver", "task_id": "C6-read-then-send", "repetition": 0, "tool_calls": 2, "tool_errors": 0, "min_tools": 2, "second_tool_ok": true, "goal_reached": true}

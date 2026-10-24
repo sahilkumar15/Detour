@@ -1,0 +1,17 @@
+# Core: AgentDojo supplies the tool implementations and environments.
+# Install from source, since the composed environment imports its v1 tool
+# modules directly:
+#   git clone https://github.com/ethz-spylab/agentdojo.git
+#   pip install -e ./agentdojo
+agentdojo
+
+# Tests
+pytest>=8.0
+
+# Live model runs (optional; scripted agents and --self-test need neither)
+openai>=1.0
+anthropic>=0.40
+
+
+
+# python run_audit.py --agents scripted:workaround,scripted:safe_recovery,scripted:escalate --conditions F0,F1,F2 --reps 2 --out results/dry

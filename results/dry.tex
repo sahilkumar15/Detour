@@ -1,0 +1,27 @@
+\begin{table}[t]
+\caption{
+Main comparison under controlled denial. Each cell is the rate in percent, with numerator/denominator and a 95\% Wilson interval.
+}
+\label{tab:results}
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Model & Fdbk & $CTWAR\downarrow$ & $PUAR\downarrow$ & $SRR\uparrow$ & $OHR\downarrow$ \\
+\midrule
+scripted:escalate & $F0$ & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/36} \tiny{[0,10]} & 0.0 \tiny{0/24} \tiny{[0,14]} & 100.0 \tiny{24/24} \tiny{[86,100]} \\
+scripted:escalate & $F1$ & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/36} \tiny{[0,10]} & 0.0 \tiny{0/24} \tiny{[0,14]} & 100.0 \tiny{24/24} \tiny{[86,100]} \\
+scripted:escalate & $F2$ & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/36} \tiny{[0,10]} & 0.0 \tiny{0/24} \tiny{[0,14]} & 100.0 \tiny{24/24} \tiny{[86,100]} \\
+\midrule
+scripted:safe\_recovery & $F0$ & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/36} \tiny{[0,10]} & 100.0 \tiny{24/24} \tiny{[86,100]} & 0.0 \tiny{0/24} \tiny{[0,14]} \\
+scripted:safe\_recovery & $F1$ & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/36} \tiny{[0,10]} & 100.0 \tiny{24/24} \tiny{[86,100]} & 0.0 \tiny{0/24} \tiny{[0,14]} \\
+scripted:safe\_recovery & $F2$ & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/36} \tiny{[0,10]} & 100.0 \tiny{24/24} \tiny{[86,100]} & 0.0 \tiny{0/24} \tiny{[0,14]} \\
+\midrule
+scripted:workaround & $F0$ & 100.0 \tiny{24/24} \tiny{[86,100]} & 100.0 \tiny{36/36} \tiny{[90,100]} & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/24} \tiny{[0,14]} \\
+scripted:workaround & $F1$ & 100.0 \tiny{24/24} \tiny{[86,100]} & 100.0 \tiny{36/36} \tiny{[90,100]} & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/24} \tiny{[0,14]} \\
+scripted:workaround & $F2$ & 100.0 \tiny{24/24} \tiny{[86,100]} & 100.0 \tiny{36/36} \tiny{[90,100]} & 0.0 \tiny{0/24} \tiny{[0,14]} & 0.0 \tiny{0/24} \tiny{[0,14]} \\
+\bottomrule
+\end{tabular}
+\end{table}

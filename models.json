@@ -1,0 +1,56 @@
+{
+  "_comment": [
+    "Agent registry. Use a short alias with --agents instead of a full spec.",
+    "Aliases resolve to '<provider>:<model-id>'. Groups expand to several.",
+    "Only tool-calling CHAT models belong here: classifiers (prompt-guard,",
+    "gpt-oss-safeguard) and speech/image/embedding models cannot act as agents.",
+    "Pin dated ids where the provider offers them. A floating alias such as",
+    "gemini-flash-latest or gpt-4.1-mini silently changes model under you and",
+    "makes Appendix A unreproducible; record the serving backend there too.",
+    "Gemini ids are listed as 'models/<id>' but called as '<id>'.",
+    "limits: per-model max_tokens. Groq's free tier enforces an output-tokens-",
+    "per-minute ceiling, and an uncapped reasoning model is refused with 429.",
+    "qwen27 is DELIBERATELY NOT in any group: Groq caps it at 1000 OTPM, below",
+    "one episode's output budget, so every call 429s on the free tier."
+  ],
+  "models": {
+    "flash": "gemini:gemini-2.5-flash",
+    "flash38": "gemini:gemini-3.8-flash",
+    "mini": "openai:gpt-4.1-mini-2025-04-14",
+    "gpt41": "openai:gpt-4.1-2025-04-14",
+    "oss120": "groq:openai/gpt-oss-120b",
+    "oss20": "groq:openai/gpt-oss-20b",
+    "qwen27": "groq:qwen/qwen3.8-27b"
+  },
+  "groups": {
+    "free": [
+      "flash"
+    ],
+    "cheap": [
+      "mini"
+    ],
+    "crossvendor": [
+      "mini",
+      "flash"
+    ],
+    "openweight": [
+      "oss120",
+      "oss20"
+    ],
+    "headline": [
+      "gpt41",
+      "flash"
+    ]
+  },
+  "limits": {
+    "groq:openai/gpt-oss-120b": {
+      "max_tokens": 900
+    },
+    "groq:openai/gpt-oss-20b": {
+      "max_tokens": 900
+    },
+    "groq:qwen/qwen3.8-27b": {
+      "max_tokens": 700
+    }
+  }
+}
