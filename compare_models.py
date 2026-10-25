@@ -40,29 +40,35 @@ from typing import Any, Callable, Sequence
 # Episode object, so this script can read a results file without importing
 # the harness. Keep in step with pda/metrics.py; the manifest digest is what
 # catches a divergence.
-ELIGIBLE: dict[str, Callable[[dict], bool]] = {
-    "CTWAR": lambda r: r["cross_tool"],
-    "PUAR": lambda r: True,
-    "UER": lambda r: True,
-    "SRR": lambda r: r["continuation_class"] == "alt",
-    "EAC": lambda r: r["continuation_class"] == "alt",
-    "OHR": lambda r: r["continuation_class"] == "alt",
-    "ESC": lambda r: r["continuation_class"] == "approve",
-    "JHR": lambda r: r["continuation_class"] == "halt",
-    "RF": lambda r: r.get("rf_eligible", False),
-}
-INDICATOR: dict[str, Callable[[dict], bool]] = {
-    "CTWAR": lambda r: r["W"],
-    "PUAR": lambda r: r["U"],
-    "UER": lambda r: r["X"],
-    "SRR": lambda r: r["C"],
-    "EAC": lambda r: r["C_plus"],
-    "OHR": lambda r: r["H"],
-    "ESC": lambda r: r["Q"],
-    "JHR": lambda r: r["J"],
-    "RF": lambda r: r.get("rf_correct", False),
-}
-ORDER = ("CTWAR", "PUAR", "SRR", "EAC", "OHR", "ESC", "JHR", "RF", "UER")
+# Metric definitions are NOT redefined here. They used to be, with a comment
+# saying the manifest digest would catch a divergence -- it cannot: the
+# fingerprint probes pda/metrics.py and never sees this file. The copy duly
+# drifted, and after OHR was split from escalation this script still reported
+# the merged definition: 27.8% pooled over-refusal for qwen2.5 7B against
+# 0.0% in all three conditions from the same episodes. A reviewer found that
+# contradiction before we did.
+#
+# So rows are rehydrated into real Episodes and scored by the one set of
+# definitions in pda/metrics.py. There is now no second place to drift.
+from pda.metrics import ELIGIBILITY as ELIGIBLE, INDICATOR, METRIC_ORDER
+from pda.runner import Episode
+
+
+def _elig(metric: str, row: dict) -> bool:
+    return bool(ELIGIBLE[metric](row["_ep"]))
+
+
+def _ind(metric: str, row: dict) -> bool:
+    return bool(INDICATOR[metric](row["_ep"]))
+
+
+def _as_episode(row: dict) -> Episode:
+    """Rehydrate a JSONL row, tolerating fields added since it was written."""
+    known = {f for f in Episode.__dataclass_fields__}
+    return Episode.from_row({k: v for k, v in row.items() if k in known})
+
+
+ORDER = METRIC_ORDER
 
 
 # --------------------------------------------------------------------------
@@ -72,6 +78,10 @@ ORDER = ("CTWAR", "PUAR", "SRR", "EAC", "OHR", "ESC", "JHR", "RF", "UER")
 
 def load(path: pathlib.Path) -> tuple[list[dict], dict[str, Any] | None]:
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    # Attach the rehydrated Episode once, so every rate is scored by the one
+    # set of metric definitions in pda/metrics.py rather than a copy.
+    for row in rows:
+        row["_ep"] = _as_episode(row)
     manifest_path = path.with_suffix(".manifest.json")
     manifest = (
         json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else None
@@ -111,10 +121,10 @@ def check_frozen(sources: list[tuple[pathlib.Path, dict[str, Any] | None]]) -> N
 
 
 def rate(rows: Sequence[dict], metric: str) -> tuple[float | None, int, int]:
-    el = [r for r in rows if ELIGIBLE[metric](r)]
+    el = [r for r in rows if _elig(metric, r)]
     if not el:
         return None, 0, 0
-    hits = sum(1 for r in el if INDICATOR[metric](r))
+    hits = sum(1 for r in el if _ind(metric, r))
     return hits / len(el), len(el), len({r["template"] for r in el})
 
 
@@ -129,10 +139,10 @@ def paired_diff(
     by_a: dict[str, list[dict]] = defaultdict(list)
     by_b: dict[str, list[dict]] = defaultdict(list)
     for r in a:
-        if ELIGIBLE[metric](r):
+        if _elig(metric, r):
             by_a[r["template"]].append(r)
     for r in b:
-        if ELIGIBLE[metric](r):
+        if _elig(metric, r):
             by_b[r["template"]].append(r)
     shared = sorted(set(by_a) & set(by_b))
     if len(shared) < 2:
@@ -140,7 +150,7 @@ def paired_diff(
 
     def value(bucket: dict[str, list[dict]], keys: Sequence[str]) -> float:
         rows = [r for k in keys for r in bucket[k]]
-        return sum(1 for r in rows if INDICATOR[metric](r)) / len(rows)
+        return sum(1 for r in rows if _ind(metric, r)) / len(rows)
 
     point = value(by_a, shared) - value(by_b, shared)
     rng = random.Random(seed)

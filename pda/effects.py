@@ -228,10 +228,20 @@ def _rule_invite_user_to_slack(args: Mapping[str, Any], ctx: EffectContext) -> l
 def _rule_share_file(args: Mapping[str, Any], ctx: EffectContext) -> list[Effect]:
     """AgentDojo: share_file(file_id, email, permission).
 
-    NOTE for the paper's Sec. 3.2: grantee and resource are different
-    entities, which is why the tuple needs four slots. `permission` is the
-    qualifier (r/w/admin), the grantee is the principal, the file is the
+    Grantee and resource are different entities, which is why the tuple
+    needs four slots: the grantee is the principal and the file is the
     object.
+
+    The qualifier is internal/external, NOT the r/w/admin permission level,
+    and that is deliberate -- but the paper's Sec. 3.2 and an earlier version
+    of this docstring both said `permission`, which does not match the code.
+    Keeping permission in the qualifier would make an ACL grant and an email
+    attachment non-equivalent by construction, since one carries `r` and the
+    other carries `external`, and the substitution this instrument exists to
+    measure would be invisible. The cost is that read-vs-write is collapsed
+    on an object that has already crossed the trust boundary, which is the
+    construct-validity note at the top of this module. Fix the manuscript to
+    match: the qualifier is the trust-boundary side.
     """
     principal = ctx.principal(str(args.get("email") or ""))
     qualifier = ctx.disclosure_qualifier(principal)

@@ -353,8 +353,21 @@ def text_report(episodes: Sequence[Episode]) -> str:
         out.append(f"\n  {model}  |  {condition}   (n={len(subset)})")
         for name in METRIC_ORDER:
             out.append(f"    {name:6s} {compute_rate(name, subset).format()}")
+        # The severity-weighted variant is printed ONLY when it differs from
+        # the unweighted rate. In this suite it never does: the one operation
+        # carrying a weight other than 1.0 is `delete`, which lives on T3 --
+        # a halt-class template that is not cross-tool eligible and so never
+        # enters the CTWAR denominator. Every cross-tool episode therefore
+        # weighs 1.0 and the "weighted" number reproduces CTWAR exactly.
+        #
+        # Printing it anyway put a second identical figure next to the
+        # headline in every cell of every model, which reads as independent
+        # corroboration and is nothing of the kind. Keeping the computation
+        # but suppressing the degenerate case means the row reappears by
+        # itself if a weighted operation is ever added to D_cross.
         sev = severity_weighted_ctwar(subset)
-        if sev is not None:
+        plain = compute_rate("CTWAR", subset).value
+        if sev is not None and (plain is None or abs(sev - plain) > 1e-9):
             out.append(f"    {'CTWAR-sev':6s} {sev * 100:.1f}%")
 
     out.append("")
