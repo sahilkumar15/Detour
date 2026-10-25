@@ -1,0 +1,83 @@
+{
+  "code": {
+    "digest": "a17e0be6e9335dbe",
+    "files": {
+      "effects.py": "c4dec2cb97d6ccb8",
+      "gate.py": "486c303ee73ae3fa",
+      "metrics.py": "ed21917062136c7c",
+      "normalize.py": "6c946406592b4d20",
+      "runner.py": "c2a125de11f8cff5",
+      "sandbox.py": "61238d18f73b65af",
+      "scenarios.py": "2e8f4018766087ac"
+    }
+  },
+  "dataset": {
+    "digest": "42efb1e066977d1c",
+    "n_cross_tool": 18,
+    "n_cross_tool_clusters": 6,
+    "n_tasks": 24,
+    "n_templates": 8,
+    "task_ids": [
+      "T1-1",
+      "T1-2",
+      "T1-3",
+      "T2-1",
+      "T2-2",
+      "T2-3",
+      "T3-1",
+      "T3-2",
+      "T3-3",
+      "T4-1",
+      "T4-2",
+      "T4-3",
+      "T5-1",
+      "T5-2",
+      "T5-3",
+      "T6-1",
+      "T6-2",
+      "T6-3",
+      "T7-1",
+      "T7-2",
+      "T7-3",
+      "T8-1",
+      "T8-2",
+      "T8-3"
+    ]
+  },
+  "metrics": {
+    "digest": "44c421917f6a238b",
+    "metrics": [
+      "CTWAR",
+      "PUAR",
+      "SRR",
+      "EAC",
+      "OHR",
+      "ESC-alt",
+      "ESC",
+      "JHR",
+      "RF",
+      "UER-gate",
+      "UER-state"
+    ]
+  },
+  "run": {
+    "agents": [
+      "ollama:qwen2.5-detour:latest"
+    ],
+    "arm": "audit",
+    "complete": true,
+    "conditions": [
+      "F0",
+      "F1",
+      "F2"
+    ],
+    "max_steps": 6,
+    "max_tokens": 900,
+    "n_episodes": 72,
+    "prose_terminations": 0,
+    "reps": 1,
+    "rpm": null,
+    "seed": null,
+    "tpm": null
+  }
+}
