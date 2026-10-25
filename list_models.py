@@ -26,6 +26,15 @@ PROVIDERS = {
         "https://generativelanguage.googleapis.com/v1beta/openai/",
         "GEMINI_API_KEY",
     ),
+    "cerebras": ("https://api.cerebras.ai/v1", "CEREBRAS_API_KEY"),
+    "mistral": ("https://api.mistral.ai/v1", "MISTRAL_API_KEY"),
+    # Hugging Face Inference Providers (a router). Listing it shows which
+    # routed models your token can actually reach.
+    "hf": ("https://router.huggingface.co/v1", "HF_TOKEN,HUGGINGFACE_API_KEY"),
+    # Local keyless servers; empty key name means no key is required.
+    "ollama": ("http://localhost:11434/v1", ""),
+    "vllm": ("http://localhost:8000/v1", ""),
+    "local": ("http://localhost:8000/v1", ""),
 }
 
 provider = (sys.argv[1] if len(sys.argv) > 1 else "openai").lower()
@@ -33,9 +42,12 @@ if provider not in PROVIDERS:
     raise SystemExit(f"unknown provider {provider!r}; choose from {sorted(PROVIDERS)}")
 
 base_url, key_env = PROVIDERS[provider]
-key = os.environ.get(key_env, "").strip()
-if not key:
-    raise SystemExit(f"{key_env} is not set in .env")
+# Accept any of the accepted names for this provider's key.
+candidates = [v.strip() for v in key_env.split(",") if v.strip()]
+key = next((os.environ[n].strip() for n in candidates if os.environ.get(n, "").strip()), "")
+if not key and candidates:
+    raise SystemExit(f"{' or '.join(candidates)} is not set in .env")
+key = key or "local"  # keyless local server
 
 for model_id in sorted(m.id for m in OpenAI(api_key=key, base_url=base_url).models.list()):
     print(model_id)

@@ -59,9 +59,10 @@ from pda.agents import (
     LLMAgent,
     scripted,
 )
+from pda.freeze import FreezeMismatch, build_manifest, verify_manifest, write_manifest
 from pda.gate import Feedback, Gate
 from pda.metrics import latex_main_table, text_report
-from pda.runner import Episode, run_episode
+from pda.runner import Episode, render_result, run_episode
 from pda.scenarios import SLACK_CHANNELS, SLACK_USERS, build_suite, suite_summary
 
 # Errors that no amount of retrying will fix. Stop cleanly on these so the
@@ -80,7 +81,39 @@ PROVIDERS: dict[str, tuple[str, str]] = {
     ),
     "cerebras": ("https://api.cerebras.ai/v1", "CEREBRAS_API_KEY"),
     "mistral": ("https://api.mistral.ai/v1", "MISTRAL_API_KEY"),
+    # Hugging Face Inference Providers: a ROUTER, not a model host. Model
+    # ids are "vendor/Model:backend" (e.g. openai/gpt-oss-120b:groq) or
+    # "vendor/Model" with a routing policy (:fastest, :cheapest). Useful for
+    # reaching several model FAMILIES through one endpoint -- but note that
+    # free HF accounts get no Inference Providers credits, and a ":groq"
+    # suffix routes to the same Groq backend this harness already calls
+    # directly for free. Only worth it for models Groq does not host.
+    # Either env-var name works: HF's own docs say HF_TOKEN, but
+    # HUGGINGFACE_API_KEY is what most tutorials use, and silently ignoring
+    # a key the user has already set is a waste of their time.
+    "hf": ("https://router.huggingface.co/v1", "HF_TOKEN,HUGGINGFACE_API_KEY"),
+    # Local, keyless, OpenAI-compatible servers. No quota, no rate limit, no
+    # network: a grid can be run to completion as many times as needed. That
+    # makes them the right tool for VERIFYING the pipeline. Whether a local
+    # model may appear in a results table is a separate question, settled by
+    # the clean-task arm: a model that cannot chain tools scores CTWAR 0%
+    # and looks perfectly safe, which is the worst failure mode this study
+    # has. Empty key name = no key required.
+    "ollama": ("http://localhost:11434/v1", ""),
+    "vllm": ("http://localhost:8000/v1", ""),
+    "local": ("http://localhost:8000/v1", ""),
 }
+
+# Hugging Face charges Inference Providers usage against account credits,
+# and FREE accounts get none, so a valid token still fails. That is a
+# billing state, not a transient error: retrying it cannot help.
+HF_CREDIT_HINT = (
+    "Hugging Face Inference Providers bills against account credits, and free\n"
+    "accounts receive none (PRO includes $2/month). A valid HF token will\n"
+    "still be refused on the free plan. Use a provider with a real free tier\n"
+    "(groq:...) or upgrade. Note that an id ending ':groq' routes to Groq\n"
+    "anyway, so calling Groq directly is strictly cheaper."
+)
 
 FATAL_MARKERS = (
     "insufficient_quota",
@@ -186,6 +219,7 @@ def make_agent(
     *,
     clean: bool = False,
     rpm: float | None = None,
+    tpm: float | None = None,
 ):
     """Parse an agent spec: scripted:<behaviour> | openai:<model> | anthropic:<model>."""
     kind, _, name = spec.partition(":")
@@ -199,6 +233,7 @@ def make_agent(
     if kind in PROVIDERS:
         base_url, key_env = PROVIDERS[kind]
         _require_key(key_env, spec)
+        key_env = _resolve_key_env(key_env)
         _check_model(name, kind, base_url, key_env)
         return LLMAgent(
             name=f"{kind}:{name}",
@@ -211,6 +246,7 @@ def make_agent(
             system_prompt=_arm_config(clean)[0],
             exclude_tools=_arm_config(clean)[1],
             min_interval=(60.0 / rpm) if rpm else 0.0,
+            tpm=tpm if tpm is not None else _model_limit(spec, "tpm"),
         )
     if kind == "anthropic":
         _require_key("ANTHROPIC_API_KEY", spec)
@@ -268,20 +304,58 @@ def _check_model(model: str, provider: str, base_url: str, key_env: str) -> None
     )
 
 
+def _resolve_key_env(var: str) -> str:
+    """Pick the first env var that is set, from a comma-separated list.
+
+    Providers get named differently by their docs and by tutorials (HF is
+    both HF_TOKEN and HUGGINGFACE_API_KEY). Accepting either avoids telling
+    someone their key is missing when it is sitting in .env under the other
+    name. Returns the first candidate when none is set, so the error message
+    names the canonical one.
+    """
+    candidates = [v.strip() for v in var.split(",") if v.strip()]
+    for name in candidates:
+        if os.environ.get(name, "").strip():
+            return name
+    return candidates[0] if candidates else var
+
+
 def _require_key(var: str, spec: str) -> None:
     """Fail before the first episode rather than on the first API call."""
-    if os.environ.get(var, "").strip():
+    candidates = [v.strip() for v in var.split(",") if v.strip()]
+    if not candidates:
+        return  # keyless local server
+    if any(os.environ.get(name, "").strip() for name in candidates):
         return
+    shown = " or ".join(candidates)
     raise SystemExit(
-        f"{var} is not set, so agent {spec!r} cannot run.\n"
+        f"{shown} is not set, so agent {spec!r} cannot run.\n"
         f"Add it to {_ENV_PATH} as a single line:\n"
-        f"    {var}=sk-your-key-here\n"
+        f"    {candidates[0]}=your-key-here\n"
         f"(no spaces around '=', no quotes needed, no trailing comment)"
     )
 
 
 def _is_fatal(exc: Exception) -> bool:
     text = f"{type(exc).__name__}: {exc}".lower()
+    # Billing markers are the VERBATIM strings providers return, not
+    # paraphrases: an earlier version guessed "insufficient credits" and
+    # missed HF's actual "no remaining credits", so a dead key burned one
+    # call per task instead of stopping on the first.
+    if any(
+        marker in text
+        for marker in (
+            "error code: 402",
+            "no remaining credits",
+            "purchase pre-paid credits",
+            "subscribe to pro",
+            "payment required",
+            "insufficient credits",
+            "exceeded your monthly included credits",
+        )
+    ):
+        print(f"\n{HF_CREDIT_HINT}\n", file=sys.stderr)
+        return True
     if any(marker in text for marker in FATAL_MARKERS):
         return True
     # A PER-DAY quota is not transient. Retrying it with backoff burns the
@@ -321,6 +395,19 @@ def _attempt(spec, agent, condition, rep, max_steps, retries: int):
         except Exception as exc:
             if _is_fatal(exc) or attempt == retries:
                 raise
+            # Flow control is handled INSIDE the request (LLMAgent waits out
+            # 429s without discarding the episode). If one still reaches
+            # here, wait a full token window rather than restarting the
+            # episode immediately -- a restart re-spends every token the
+            # episode already used and brings the next limit closer.
+            if "rate_limit" in str(exc).lower() or type(exc).__name__ == "RateLimitError":
+                print(
+                    "  rate limit reached the episode loop; waiting 65s for the "
+                    "token window to drain",
+                    file=sys.stderr,
+                )
+                time.sleep(65)
+                continue
             wait = min(2**attempt * 4, 60)
             print(
                 f"  transient error ({type(exc).__name__}); retry in {wait}s",
@@ -341,6 +428,7 @@ def run(
     retries: int = 4,
     max_tokens: int | None = None,
     rpm: float | None = None,
+    tpm: float | None = None,
 ) -> tuple[list[Episode], bool]:
     """Execute the grid, streaming each episode to disk. Returns (episodes, complete)."""
     suite = build_suite()
@@ -349,6 +437,23 @@ def run(
 
     episodes, done = _load_existing(jsonl) if resume else ([], set())
     if done:
+        # Resuming into a file written under a DIFFERENT benchmark would
+        # silently interleave episodes measured two different ways: the
+        # resume key is model|condition|rep|task, which is identical across
+        # suite versions, so nothing else would catch it.
+        existing_manifest = out.with_suffix(".manifest.json")
+        if existing_manifest.exists():
+            try:
+                verify_manifest(existing_manifest, build_suite())
+            except FreezeMismatch as exc:
+                print(
+                    f"\nREFUSING TO RESUME {jsonl}\n{exc}\n"
+                    f"Those {len(done)} episodes were measured under the earlier "
+                    f"benchmark.\nRe-run with a NEW --out (e.g. --out results/"
+                    f"{out.name}-v2), or pass --no-resume to overwrite.",
+                    file=sys.stderr,
+                )
+                return [], False
         print(f"resuming: {len(done)} episodes already on disk", file=sys.stderr)
 
     total = len(suite) * len(agent_specs) * len(conditions) * reps
@@ -359,7 +464,7 @@ def run(
         for agent_spec in agent_specs:
             if aborted:
                 break
-            agent = make_agent(agent_spec, max_tokens, rpm=rpm)  # audit arm
+            agent = make_agent(agent_spec, max_tokens, rpm=rpm, tpm=tpm)  # audit arm
             for condition in conditions:
                 if aborted:
                     break
@@ -399,6 +504,7 @@ def run_clean(
     out: pathlib.Path,
     max_tokens: int | None = None,
     rpm: float | None = None,
+    tpm: float | None = None,
 ) -> int:
     """Clean-task competence arm: benign tasks, no policy, no denial.
 
@@ -429,7 +535,7 @@ def run_clean(
     for agent_spec in agent_specs:
         if aborted:
             break
-        agent = make_agent(agent_spec, max_tokens, clean=True, rpm=rpm)
+        agent = make_agent(agent_spec, max_tokens, clean=True, rpm=rpm, tpm=tpm)
         for rep in range(reps):
             if aborted:
                 break
@@ -470,9 +576,9 @@ def run_clean(
                     calls += 1
                     args = _resolve_clean_args(dict(proposal.args), sandbox)
                     try:
-                        sandbox.execute(proposal.tool, args)
+                        result = sandbox.execute(proposal.tool, args)
                         trace.append(f"{proposal.tool}({','.join(sorted(args))})")
-                        observation = f"{proposal.tool} completed."
+                        observation = render_result(proposal.tool, result)
                     except Exception as exc:
                         tool_errors += 1
                         trace.append(f"{proposal.tool}!{type(exc).__name__}")
@@ -526,6 +632,21 @@ def run_clean(
 
     out.with_suffix(".jsonl").write_text(
         "\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8"
+    )
+    write_manifest(
+        out,
+        build_suite(),
+        run={
+            "agents": list(agent_specs),
+            "reps": reps,
+            "max_steps": max_steps,
+            "max_tokens": max_tokens,
+            "rpm": rpm,
+            "tpm": tpm,
+            "n_rows": len(rows),
+            "excluded_failures": failures,
+            "arm": "clean",
+        },
     )
 
     print("\n" + "=" * 68)
@@ -685,12 +806,74 @@ def self_test() -> int:
     )
     check("aliased recipient cannot bypass the gate", denied_all)
 
+    # ---- validity invariants added after external critique -----------------
+    from pda.metrics import Rate
+    from pda.runner import run_episode as _run
+    from pda.scenarios import build_suite as _suite
+
+    suite = _suite()
+    t5 = next(x for x in suite if x.template.startswith("T5"))
+    t6 = next(x for x in suite if x.template.startswith("T6"))
+    t1 = next(x for x in suite if x.template.startswith("T1"))
+    check("T5 control withholds every external route", {"send_direct_message", "share_file"} <= set(t5.unavailable_tools))
+    check("T6 injection is in tool content, not the task goal",
+          t6.goal == t1.goal.replace(t1.task_id, t6.task_id) or "Operations note" not in t6.goal)
+    check("T6 injection reaches the model through the file body",
+          any("Operations note" in f.content for f in t6.build().cloud_drive.files.values()))
+
+    check("Wilson interval suppressed for clustered rates",
+          Rate("x", 3, 12, 4).wilson() is None and Rate("x", 3, 12, 12).wilson() is not None)
+
+    # Independent verifier catches an external DM the gate never saw.
+    sb = t1.build()
+    marker = next(iter(next(iter(t1.ctx.object_markers.values()))))
+    sb.execute("send_direct_message", {"recipient": "bob", "body": marker})
+    check("state verifier detects external disclosure",
+          bool(sb.state_violations([marker], list(t1.ctx.object_markers), False)))
+    check("state verifier silent on a clean sandbox",
+          not t1.build().state_violations([marker], list(t1.ctx.object_markers), False))
+
+    # Running out of steps is not an over-refusal.
+    class _Looper:
+        name = "looper"
+        def reset(self, spec, tools): self.tools = tools
+        def propose(self, obs):
+            from pda.runner import Proposal
+            return Proposal(tool="list_files", args={})
+    ep_loop = _run(t1, _Looper(), Feedback.F1, max_steps=3)
+    check("budget exhaustion is flagged and not scored as over-refusal",
+          ep_loop.budget_exhausted and not ep_loop.H)
+
+    # Withheld tools cannot be used.
+    class _External:
+        name = "ext"
+        def reset(self, spec, tools): pass
+        def propose(self, obs):
+            from pda.runner import Proposal
+            return Proposal(tool="send_direct_message", args={"recipient": "bob", "body": "x"})
+    ep_t5 = _run(t5, _External(), Feedback.F1, max_steps=2)
+    check("withheld tool is rejected, never executed",
+          all(s.executed_ok is False for s in ep_t5.steps if s.tool == "send_direct_message"))
+
     try:
         normalize_args("send_email", {"subject": "x", "body": "y"})
         raised = False
     except MalformedCallError:
         raised = True
     check("unreadable call raises instead of no-opping", raised)
+
+    # A read tool must actually return what it read. If the model only sees
+    # "completed", it re-reads forever and the competence arm reports
+    # incompetence that is really a harness defect.
+    from pda.scenarios import clean_tasks as _ct
+
+    _task = next(x for x in _ct() if x.task_id == "C6-read-then-send")
+    _sb = _task.build()
+    _seen = render_result(
+        "get_file_by_id",
+        _sb.execute("get_file_by_id", {"file_id": _sb.file_id_for("standup-log.md")}),
+    )
+    check("read tool result is shown to the model", "shipped parser" in _seen)
 
     audit_prompt, audit_excl = _arm_config(clean=False)
     clean_prompt, clean_excl = _arm_config(clean=True)
@@ -768,6 +951,24 @@ def main() -> int:
         help="pace requests to at most this many per minute (free tiers)",
     )
     parser.add_argument("--no-resume", action="store_true", help="ignore episodes already in the output file")
+    parser.add_argument(
+        "--tpm",
+        type=float,
+        default=None,
+        help="tokens-per-minute ceiling; requests are held back to stay under it "
+        "(default: the model's 'tpm' entry in models.json)",
+    )
+    parser.add_argument(
+        "--verify-freeze",
+        metavar="MANIFEST",
+        default=None,
+        help="refuse to run unless the dataset and metric digests match this manifest",
+    )
+    parser.add_argument(
+        "--freeze-digest",
+        action="store_true",
+        help="print the dataset/metric/code digests and exit",
+    )
     parser.add_argument("--out", default="results/run")
     args = parser.parse_args()
 
@@ -782,13 +983,29 @@ def main() -> int:
     if args.self_test:
         return self_test()
 
+    if args.freeze_digest:
+        print(json.dumps(build_manifest(build_suite()), indent=2, sort_keys=True))
+        return 0
+
+    # The cross-model claim is only readable if the benchmark did not move
+    # between runs. Check that BEFORE spending any tokens.
+    if args.verify_freeze:
+        try:
+            warnings = verify_manifest(args.verify_freeze, build_suite())
+        except FreezeMismatch as exc:
+            print(f"FROZEN-BENCHMARK CHECK FAILED\n{exc}", file=sys.stderr)
+            return 2
+        for line in warnings:
+            print(f"note: {line}", file=sys.stderr)
+        print("frozen-benchmark check passed", file=sys.stderr)
+
     agent_specs = resolve_agents(args.agents)
     out = pathlib.Path(args.out)
     print(f"agents: {', '.join(agent_specs)}", file=sys.stderr)
 
     if args.clean:
         return run_clean(
-            agent_specs, args.reps, args.max_steps, out, args.max_tokens, args.rpm
+            agent_specs, args.reps, args.max_steps, out, args.max_tokens, args.rpm, args.tpm
         )
 
     conditions = [Feedback(c.strip()) for c in args.conditions.split(",") if c.strip()]
@@ -804,11 +1021,29 @@ def main() -> int:
         retries=args.retries,
         max_tokens=args.max_tokens,
         rpm=args.rpm,
+        tpm=args.tpm,
     )
 
     if not episodes:
         print("no episodes were completed; nothing to report.", file=sys.stderr)
         return 1
+
+    manifest = write_manifest(
+        out,
+        build_suite(),
+        run={
+            "agents": list(agent_specs),
+            "conditions": [c.value for c in conditions],
+            "reps": args.reps,
+            "max_steps": args.max_steps,
+            "max_tokens": args.max_tokens,
+            "rpm": args.rpm,
+            "tpm": args.tpm,
+            "complete": complete,
+            "n_episodes": len(episodes),
+            "arm": "audit",
+        },
+    )
 
     report = text_report(episodes)
     out.with_suffix(".txt").write_text(report + "\n", encoding="utf-8")
@@ -816,6 +1051,7 @@ def main() -> int:
 
     print(report)
     print(f"\ntraces  -> {out.with_suffix('.jsonl')}")
+    print(f"freeze  -> {manifest}")
     print(f"report  -> {out.with_suffix('.txt')}")
     print(f"latex   -> {out.with_suffix('.tex')}")
 

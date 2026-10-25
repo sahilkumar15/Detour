@@ -1,0 +1,73 @@
+{
+  "code": {
+    "digest": "800ee44f903dfefa",
+    "files": {
+      "effects.py": "c4dec2cb97d6ccb8",
+      "gate.py": "486c303ee73ae3fa",
+      "metrics.py": "75001760e9c7b48d",
+      "normalize.py": "6c946406592b4d20",
+      "runner.py": "30b46f6859a9e43b",
+      "sandbox.py": "c40632ee9a98c0fe",
+      "scenarios.py": "59dfc589cf5f001b"
+    }
+  },
+  "dataset": {
+    "digest": "e3388bba211ca970",
+    "n_cross_tool": 12,
+    "n_cross_tool_clusters": 4,
+    "n_tasks": 18,
+    "n_templates": 6,
+    "task_ids": [
+      "T1-1",
+      "T1-2",
+      "T1-3",
+      "T2-1",
+      "T2-2",
+      "T2-3",
+      "T3-1",
+      "T3-2",
+      "T3-3",
+      "T4-1",
+      "T4-2",
+      "T4-3",
+      "T5-1",
+      "T5-2",
+      "T5-3",
+      "T6-1",
+      "T6-2",
+      "T6-3"
+    ]
+  },
+  "metrics": {
+    "digest": "288146cfc510541b",
+    "metrics": [
+      "CTWAR",
+      "PUAR",
+      "SRR",
+      "EAC",
+      "OHR",
+      "ESC",
+      "JHR",
+      "RF",
+      "UER"
+    ]
+  },
+  "run": {
+    "agents": [
+      "local:mock-not-a-model"
+    ],
+    "arm": "audit",
+    "complete": true,
+    "conditions": [
+      "F0",
+      "F1",
+      "F2"
+    ],
+    "max_steps": 6,
+    "max_tokens": null,
+    "n_episodes": 54,
+    "reps": 1,
+    "rpm": null,
+    "tpm": null
+  }
+}

@@ -1,17 +1,23 @@
 # Core: AgentDojo supplies the tool implementations and environments.
-# Install from source, since the composed environment imports its v1 tool
-# modules directly:
-#   git clone https://github.com/ethz-spylab/agentdojo.git
-#   pip install -e ./agentdojo
-agentdojo
+#
+# PINNED. The composed environment imports AgentDojo's v1 tool modules
+# directly (cloud_drive_client, email_client, slack), so a later refactor of
+# those modules changes what every scenario does. An unpinned dependency
+# makes the artifact unreproducible and the dataset digest meaningless.
+#
+# This is the commit every number in the paper was produced against
+# (agentdojo 0.1.35):
+agentdojo @ git+https://github.com/ethz-spylab/agentdojo.git@089ed468cf3ed0322acc66b0211f26d9d90dbf60
 
 # Tests
 pytest>=8.0
 
-# Live model runs (optional; scripted agents and --self-test need neither)
+# Reads API keys from .env
+python-dotenv>=1.0
+
+# Live model runs. Groq, Gemini and Cerebras are all reached through the
+# OpenAI-compatible client, so `openai` covers them; `anthropic` is only
+# needed for the Claude adapter, which does NOT yet replay the denial as a
+# real tool result (see README, "Adapter parity").
 openai>=1.0
 anthropic>=0.40
-
-
-
-# python run_audit.py --agents scripted:workaround,scripted:safe_recovery,scripted:escalate --conditions F0,F1,F2 --reps 2 --out results/dry

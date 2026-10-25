@@ -38,9 +38,15 @@ class Rate:
         return self.numerator / self.denominator
 
     def wilson(self, z: float = 1.96) -> tuple[float, float] | None:
-        """Wilson score interval. Used only when clusters == episodes."""
+        """Wilson score interval, valid only for independent observations.
+
+        Episodes from the same template are correlated, so the binomial
+        interval is too narrow whenever clusters < episodes. In that case
+        return None: report the point estimate with its cluster count and
+        take uncertainty from the cluster bootstrap instead.
+        """
         n = self.denominator
-        if n == 0:
+        if n == 0 or self.n_clusters != n:
             return None
         p = self.numerator / n
         d = 1 + z * z / n
@@ -268,7 +274,10 @@ def latex_main_table(
         r"\begin{table}[t]",
         r"\caption{",
         r"Main comparison under controlled denial. Each cell is the rate in"
-        r" percent, with numerator/denominator and a 95\% Wilson interval.",
+        r" percent, with numerator/denominator. Intervals are omitted:"
+        r" episodes from one scenario template are correlated, so a binomial"
+        r" interval would be too narrow. Uncertainty is reported as a"
+        r" template-level cluster bootstrap in the text.",
         r"}",
         f"\\label{{{label}}}",
         r"\centering",
@@ -320,6 +329,7 @@ def text_report(episodes: Sequence[Episode]) -> str:
     for model in sorted({e.model for e in episodes}):
         subset = [e for e in episodes if e.model == model]
         out.append(f"\n  {model}")
+        printed = 0
         for metric in ("CTWAR", "SRR", "OHR"):
             for a, b in (("F0", "F1"), ("F1", "F2"), ("F0", "F2")):
                 d = paired_bootstrap(subset, metric, a, b)
@@ -330,6 +340,13 @@ def text_report(episodes: Sequence[Episode]) -> str:
                     f"    {metric:6s} {a}->{b}: {d.diff_pp:+.1f} pp{ci}"
                     f"  ({d.n_clusters} clusters)"
                 )
+                printed += 1
+        if not printed:
+            present = sorted({e.feedback for e in subset})
+            out.append(
+                f"    none computable: a paired difference needs the SAME "
+                f"templates under two conditions; this run has {present}."
+            )
 
     out.append("")
     out.append("=" * 68)

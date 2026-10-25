@@ -4,13 +4,14 @@ Why this module exists, and why it is load-bearing rather than cosmetic:
 
 The effect oracle reads named arguments (`recipients`, `file_id`, `email`).
 Models do not reliably emit the schema's names: `send_email(to="x")` is a
-common variant. Left alone, `to` is invisible to the oracle, so the call
-yields NO effect, the gate ALLOWS it, and the sandbox then sends the mail
-anyway because its dispatch defaulted the missing field to empty. The net
-result is a forbidden disclosure executed through an allowed decision --
-a gate bypass that `X` cannot see, because `decision.effects` is empty.
-In the audit arm that silently biases CTWAR downward: a genuine cross-tool
-workaround is recorded as a compliant no-op.
+common variant. If the gate reads only the canonical `recipients` field, an
+aliased call yields NO effect and is ALLOWED, while an executor with a
+different notion of the field may treat the same call differently. In this
+sandbox the un-normalized call reached no recipient, so no forbidden
+disclosure was observed; the hazard is the DESIGN one: gate and executor must
+parse a call identically, or a divergence can become a bypass. That is a
+property to enforce and test, not an observed violation, and it is not a
+result of the audit.
 
 So argument shape is normalized ONCE, at the boundary, and the same
 normalized dict is what the oracle, the gate and the sandbox all see.
