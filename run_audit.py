@@ -181,20 +181,70 @@ def resolve_agents(raw: str) -> list[str]:
     return [s for s in out if not (s in seen or seen.add(s))]
 
 
+def _provider_status(kind: str) -> str:
+    """Can this provider be used right now? Cheap probe, no model call.
+
+    Keyed providers are judged by whether their env var is set; local ones
+    by whether the server answers. Knowing which models are REACHABLE is a
+    different question from which are configured, and conflating the two is
+    how an afternoon goes into a run that was never going to start.
+    """
+    base_url, key_env = PROVIDERS[kind]
+    if not key_env:
+        try:
+            import urllib.request
+
+            urllib.request.urlopen(base_url.rstrip("/") + "/models", timeout=2)
+            return "READY (local server up)"
+        except Exception:
+            return "server not reachable"
+    names = [v.strip() for v in key_env.split(",") if v.strip()]
+    if any(os.environ.get(n, "").strip() for n in names):
+        return "key set"
+    return f"no {' / '.join(names)}"
+
+
 def print_registry() -> None:
     models, groups = _load_registry()
     if not models:
         print(f"no registry found at {_REGISTRY_PATH}")
         return
+
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(_ENV_PATH)
+    except ImportError:
+        pass
+
+    print("\nPROVIDERS  (one line each in PROVIDERS, run_audit.py)")
+    pw = max(len(k) for k in PROVIDERS)
+    for kind in sorted(PROVIDERS):
+        base_url, key_env = PROVIDERS[kind]
+        print(f"  {kind.ljust(pw)}  {_provider_status(kind):<26} {base_url}")
+
     width = max(len(a) for a in models)
     print("\nALIASES")
     for alias, spec in models.items():
-        print(f"  {alias.ljust(width)}  {spec}")
+        kind = spec.partition(":")[0]
+        state = _provider_status(kind) if kind in PROVIDERS else "scripted"
+        mark = "  " if state.startswith(("READY", "key set", "scripted")) else " x"
+        print(f" {mark} {alias.ljust(width)}  {spec}")
+    print("\n  x = that provider is not usable right now")
+
     if groups:
         print("\nGROUPS")
         gw = max(len(g) for g in groups)
         for group, aliases in groups.items():
             print(f"  {group.ljust(gw)}  {', '.join(aliases)}")
+
+    print("\nSWITCHING MODELS")
+    print("  Everything except the model is pinned by the dataset and metric")
+    print("  digests, so only --agents changes between comparable runs:")
+    print("      python run_audit.py --agents qwen7  --conditions F0,F1,F2 --out results/a")
+    print("      python run_audit.py --agents oss120 --conditions F0,F1,F2 --out results/b \\")
+    print("          --verify-freeze results/a.manifest.json")
+    print("      python compare_models.py results/a.jsonl results/b.jsonl")
     print()
 
 
@@ -220,6 +270,7 @@ def make_agent(
     clean: bool = False,
     rpm: float | None = None,
     tpm: float | None = None,
+    seed: int | None = None,
 ):
     """Parse an agent spec: scripted:<behaviour> | openai:<model> | anthropic:<model>."""
     kind, _, name = spec.partition(":")
@@ -247,6 +298,7 @@ def make_agent(
             exclude_tools=_arm_config(clean)[1],
             min_interval=(60.0 / rpm) if rpm else 0.0,
             tpm=tpm if tpm is not None else _model_limit(spec, "tpm"),
+            seed=seed,
         )
     if kind == "anthropic":
         _require_key("ANTHROPIC_API_KEY", spec)
@@ -417,6 +469,9 @@ def _attempt(spec, agent, condition, rep, max_steps, retries: int):
     raise RuntimeError("unreachable")
 
 
+_AGENTS_USED: list[Any] = []
+
+
 def run(
     agent_specs: Sequence[str],
     conditions: Sequence[Feedback],
@@ -429,6 +484,7 @@ def run(
     max_tokens: int | None = None,
     rpm: float | None = None,
     tpm: float | None = None,
+    seed: int | None = None,
 ) -> tuple[list[Episode], bool]:
     """Execute the grid, streaming each episode to disk. Returns (episodes, complete)."""
     suite = build_suite()
@@ -464,7 +520,8 @@ def run(
         for agent_spec in agent_specs:
             if aborted:
                 break
-            agent = make_agent(agent_spec, max_tokens, rpm=rpm, tpm=tpm)  # audit arm
+            agent = make_agent(agent_spec, max_tokens, rpm=rpm, tpm=tpm, seed=seed)  # audit arm
+            _AGENTS_USED.append(agent)
             for condition in conditions:
                 if aborted:
                     break
@@ -952,6 +1009,12 @@ def main() -> int:
     )
     parser.add_argument("--no-resume", action="store_true", help="ignore episodes already in the output file")
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="decoding seed; temperature=0 alone is NOT reproducible on a GPU",
+    )
+    parser.add_argument(
         "--tpm",
         type=float,
         default=None,
@@ -1022,16 +1085,27 @@ def main() -> int:
         max_tokens=args.max_tokens,
         rpm=args.rpm,
         tpm=args.tpm,
+        seed=args.seed,
     )
 
     if not episodes:
         print("no episodes were completed; nothing to report.", file=sys.stderr)
         return 1
 
+    prose = sum(getattr(a, "prose_terminations", 0) for a in _AGENTS_USED)
+    if prose:
+        print(
+            f"\nNOTE: {prose} episode(s) ended in prose rather than a "
+            f"report_and_stop call;\n  the status was recovered from the text. "
+            f"Report this beside RF.",
+            file=sys.stderr,
+        )
+
     manifest = write_manifest(
         out,
         build_suite(),
         run={
+            "prose_terminations": prose,
             "agents": list(agent_specs),
             "conditions": [c.value for c in conditions],
             "reps": args.reps,
@@ -1039,6 +1113,7 @@ def main() -> int:
             "max_tokens": args.max_tokens,
             "rpm": args.rpm,
             "tpm": args.tpm,
+            "seed": args.seed,
             "complete": complete,
             "n_episodes": len(episodes),
             "arm": "audit",

@@ -1,0 +1,19 @@
+\begin{table}[t]
+\caption{
+Main comparison under controlled denial. Each cell is the rate in percent, with numerator/denominator. Intervals are omitted: episodes from one scenario template are correlated, so a binomial interval would be too narrow. Uncertainty is reported as a template-level cluster bootstrap in the text.
+}
+\label{tab:results}
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Model & Fdbk & $CTWAR\downarrow$ & $PUAR\downarrow$ & $SRR\uparrow$ & $OHR\downarrow$ \\
+\midrule
+ollama:qwen2.5-detour:latest & $F0$ & 27.8 \tiny{5/18} & 45.8 \tiny{11/24} & 5.6 \tiny{1/18} & 33.3 \tiny{6/18} \\
+ollama:qwen2.5-detour:latest & $F1$ & 0.0 \tiny{0/18} & 8.3 \tiny{2/24} & 5.6 \tiny{1/18} & 77.8 \tiny{14/18} \\
+ollama:qwen2.5-detour:latest & $F2$ & 5.6 \tiny{1/18} & 16.7 \tiny{4/24} & 5.6 \tiny{1/18} & 66.7 \tiny{12/18} \\
+\bottomrule
+\end{tabular}
+\end{table}

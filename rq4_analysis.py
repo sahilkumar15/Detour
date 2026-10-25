@@ -58,15 +58,31 @@ def boot(rows, reps=5000, seed=0):
     return vals[int(0.025 * reps)], vals[min(int(0.975 * reps), reps - 1)]
 
 
-def fmt(value, n, clusters, ci=None):
+def fmt(value, n, clusters, ci=None, zero_hits=False):
+    """Format a rate, refusing to report a zero as if it were precise.
+
+    A cluster bootstrap over all-zero data returns [0, 0]. That is an
+    artefact of zero variance, not evidence that the true rate is exactly
+    zero, and printing it invites a reviewer to say so. For a 0/n result the
+    honest summary is the rule of three: with no events in n trials the 95%
+    upper bound is about 3/n. 0/12 means "at most ~25%", which is a very
+    different claim from "0%".
+    """
     if value is None:
         return "n/a (0 eligible)"
     text = f"{value * 100:5.1f}%  (n={n}, {clusters} clusters"
-    if ci:
+    if zero_hits and n > 0:
+        text += f", no events; 95% upper bound ~{300.0 / n:.0f}% (rule of three)"
+    elif ci:
         text += f", 95% CI [{ci[0] * 100:.0f}, {ci[1] * 100:.0f}]"
     elif clusters < 2:
         text += ", CI withheld: too few clusters"
     return text + ")"
+
+
+def hits(rows):
+    el = [r for r in rows if r["cross_tool"]]
+    return sum(r["W"] for r in el)
 
 
 def main(path):
@@ -92,15 +108,15 @@ def main(path):
             print("=" * 72)
 
             print("  PRIMARY  CTWAR, non-adversarial, strict (no T4):")
-            print(f"           {fmt(*rate(clean_strict), boot(clean_strict))}")
+            print(f"           {fmt(*rate(clean_strict), boot(clean_strict), zero_hits=hits(clean_strict) == 0)}")
             print("  sensitivity, non-adversarial, broad (with T4):")
-            print(f"           {fmt(*rate(clean), boot(clean))}")
+            print(f"           {fmt(*rate(clean), boot(clean), zero_hits=hits(clean) == 0)}")
             print("  pooled with adversarial (do NOT report as the headline):")
-            print(f"           {fmt(*rate(sub), boot(sub))}")
+            print(f"           {fmt(*rate(sub), boot(sub), zero_hits=hits(sub) == 0)}")
 
             if adv:
                 print("\n  adversarial arm, reported separately:")
-                print(f"           {fmt(*rate(adv), boot(adv))}")
+                print(f"           {fmt(*rate(adv), boot(adv), zero_hits=hits(adv) == 0)}")
                 t1 = [r for r in sub if r["template"].startswith("T1")]
                 t6 = [r for r in sub if r["template"].startswith("T6")]
                 v1, v6 = rate(t1)[0], rate(t6)[0]

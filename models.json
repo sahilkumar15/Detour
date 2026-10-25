@@ -41,7 +41,21 @@
     "these are NOT a free-tier substitute for Groq. Use them only to reach a",
     "model FAMILY that Groq does not host. A \":groq\" suffix just routes back",
     "to Groq and spends HF credit for nothing. Ids are UNVERIFIED: run",
-    "`python list_models.py hf` and keep only what your token can reach."
+    "`python list_models.py hf` and keep only what your token can reach.",
+    "",
+    "SWITCHING MODELS is the only thing that should change between runs.",
+    "The suite, the policy and the metric definitions are pinned by the",
+    "dataset/metric digests in pda/freeze.py, so `--agents X` vs `--agents Y`",
+    "is a model comparison and nothing else. To add a model: put an alias",
+    "here. To add a PROVIDER: one line in PROVIDERS in run_audit.py, giving",
+    "its OpenAI-compatible base_url and the env var holding its key (empty",
+    "string = keyless local server).",
+    "",
+    "ollama:* aliases are LOCAL: no key, no quota, no rate limit. Use them to",
+    "develop and to run unlimited grids. qwen7 points at the num_ctx 8192",
+    "build created with `ollama create qwen2.5-detour -f Modelfile`; the raw",
+    "qwen7raw has Ollama's default context, which silently truncates the",
+    "denial out of a long transcript."
   ],
   "models": {
     "oss120": "groq:openai/gpt-oss-120b",
@@ -54,7 +68,12 @@
     "mini": "openai:gpt-4.1-mini-2025-04-14",
     "gpt41": "openai:gpt-4.1-2025-04-14",
     "hf_kimi": "hf:moonshotai/Kimi-K2-Instruct-0905",
-    "hf_qwen": "hf:Qwen/Qwen2.5-72B-Instruct"
+    "hf_qwen": "hf:Qwen/Qwen2.5-72B-Instruct",
+    "qwen7": "ollama:qwen2.5-detour:latest",
+    "qwen7raw": "ollama:qwen2.5:7b",
+    "llama32": "ollama:llama3.2:latest",
+    "mock": "local:mock-not-a-model",
+    "llama31": "ollama:llama3.1:8b"
   },
   "groups": {
     "groqfree": [
@@ -86,6 +105,18 @@
     "hfcross": [
       "hf_kimi",
       "hf_qwen"
+    ],
+    "local": [
+      "qwen7"
+    ],
+    "localtwo": [
+      "qwen7",
+      "llama32"
+    ],
+    "paperset": [
+      "qwen7",
+      "llama31",
+      "llama32"
     ]
   },
   "limits": {
@@ -108,6 +139,18 @@
     "groq:moonshotai/kimi-k2-instruct": {
       "max_tokens": 900,
       "tpm": 10000
+    },
+    "ollama:qwen2.5-detour:latest": {
+      "max_tokens": 900
+    },
+    "ollama:qwen2.5:7b": {
+      "max_tokens": 900
+    },
+    "ollama:llama3.2:latest": {
+      "max_tokens": 900
+    },
+    "ollama:llama3.1:8b": {
+      "max_tokens": 900
     }
   }
 }

@@ -1,0 +1,80 @@
+{
+  "code": {
+    "digest": "8aa8287a937bc322",
+    "files": {
+      "effects.py": "c4dec2cb97d6ccb8",
+      "gate.py": "486c303ee73ae3fa",
+      "metrics.py": "75001760e9c7b48d",
+      "normalize.py": "6c946406592b4d20",
+      "runner.py": "30b46f6859a9e43b",
+      "sandbox.py": "c40632ee9a98c0fe",
+      "scenarios.py": "c9d8c33346dc8727"
+    }
+  },
+  "dataset": {
+    "digest": "cdb65ed6207cd621",
+    "n_cross_tool": 18,
+    "n_cross_tool_clusters": 6,
+    "n_tasks": 24,
+    "n_templates": 8,
+    "task_ids": [
+      "T1-1",
+      "T1-2",
+      "T1-3",
+      "T2-1",
+      "T2-2",
+      "T2-3",
+      "T3-1",
+      "T3-2",
+      "T3-3",
+      "T4-1",
+      "T4-2",
+      "T4-3",
+      "T5-1",
+      "T5-2",
+      "T5-3",
+      "T6-1",
+      "T6-2",
+      "T6-3",
+      "T7-1",
+      "T7-2",
+      "T7-3",
+      "T8-1",
+      "T8-2",
+      "T8-3"
+    ]
+  },
+  "metrics": {
+    "digest": "288146cfc510541b",
+    "metrics": [
+      "CTWAR",
+      "PUAR",
+      "SRR",
+      "EAC",
+      "OHR",
+      "ESC",
+      "JHR",
+      "RF",
+      "UER"
+    ]
+  },
+  "run": {
+    "agents": [
+      "ollama:llama3.2:latest"
+    ],
+    "arm": "audit",
+    "complete": true,
+    "conditions": [
+      "F0",
+      "F1",
+      "F2"
+    ],
+    "max_steps": 6,
+    "max_tokens": 900,
+    "n_episodes": 72,
+    "prose_terminations": 0,
+    "reps": 1,
+    "rpm": null,
+    "tpm": null
+  }
+}

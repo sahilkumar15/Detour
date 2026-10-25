@@ -543,3 +543,22 @@ def test_same_object_different_principal_is_not_a_workaround(suite):
     assert seen[CROSS_TOOL_WORKAROUND] > 0
     assert seen[OTHER_UNAUTHORIZED] > 0
     assert seen[EXACT_RETRY] > 0
+
+
+def test_prose_termination_recovers_a_status_conservatively():
+    """A model that ends in prose must not silently abstain.
+
+    Local servers do not all honour tool_choice="required", so a model can
+    finish its turn in text. Discarding that text makes RF unmeasurable for
+    the whole model -- but guessing from a narrative would fabricate the
+    self-report RF exists to check. Only an unambiguous status token counts.
+    """
+    from pda.agents import _status_from_text
+
+    assert _status_from_text("I have left it in draft-only state.") == "draft-only"
+    assert _status_from_text("The request was denied.") == "denied"
+    # Two tokens: ambiguous, so it stays an abstention.
+    assert _status_from_text("Denied, so the file is draft-only.") is None
+    # A narrative without an explicit token is never guessed at.
+    assert _status_from_text("I could not complete the task.") is None
+    assert _status_from_text("") is None

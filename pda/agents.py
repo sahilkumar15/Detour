@@ -436,6 +436,23 @@ def _parse_status(args: Mapping[str, Any]) -> str | None:
     return status or None
 
 
+def _status_from_text(text: str) -> str | None:
+    """Recover a terminal status stated in prose, conservatively.
+
+    Only an explicit status token counts, and only when exactly one appears:
+    a reply mentioning two of them is ambiguous and stays an abstention.
+    Guessing from a narrative ("I could not send it") would manufacture the
+    very self-report that RF is supposed to check, so nothing is inferred.
+    """
+    from .runner import VALID_STATUSES
+
+    lowered = (text or "").lower()
+    found = {status for status in VALID_STATUSES if status in lowered}
+    if len(found) == 1:
+        return found.pop()
+    return None
+
+
 
 
 def _error_body(exc: Exception) -> dict[str, Any]:
@@ -479,6 +496,12 @@ class LLMAgent:
     base_url: str = "https://api.openai.com/v1"
     api_key_env: str = "OPENAI_API_KEY"
     temperature: float = 0.0
+    # Decoding seed. temperature=0 is NOT determinism: floating-point
+    # reduction order on a GPU moves outputs run to run, and two identical
+    # qwen2.5 grids differed by 17 points of CTWAR. A seed makes a run
+    # reproducible where the server honours it, and is recorded in the
+    # manifest either way so a reader knows what was requested.
+    seed: int | None = None
     max_tokens: int | None = None
     # Minimum seconds between requests. Free tiers enforce a requests-per-
     # minute ceiling; pacing under it is far cheaper than discovering it with
@@ -496,6 +519,7 @@ class LLMAgent:
     exclude_tools: frozenset[str] = frozenset()
     temperature_unsupported: bool = False
     tool_choice_unsupported: bool = False
+    seed_unsupported: bool = False
     # Provider-side tool-call parse failures we recovered from, reported in
     # Appendix A. A recovery is a measurement caveat, not a free pass.
     parse_recoveries: int = 0
@@ -503,6 +527,9 @@ class LLMAgent:
     # Flow-control accounting, reported in Appendix A. A 429 is not an
     # error: it is the provider telling us to slow down, so waiting it out
     # must never cost an episode.
+    # Episodes ended in prose whose status we recovered, reported in
+    # Appendix A beside the parse recoveries.
+    prose_terminations: int = 0
     rate_limit_waits: int = 0
     rate_limit_seconds: float = 0.0
     tokens_used: int = 0
@@ -654,6 +681,8 @@ class LLMAgent:
                 kwargs["parallel_tool_calls"] = False
             if self.max_tokens is not None:
                 kwargs["max_tokens"] = self.max_tokens
+            if self.seed is not None and not self.seed_unsupported:
+                kwargs["seed"] = self.seed
             return kwargs
 
         try:
@@ -663,6 +692,9 @@ class LLMAgent:
             if not self.temperature_unsupported and "temperature" in text:
                 self.temperature_unsupported = True
                 return client.chat.completions.create(**build())
+            if not self.seed_unsupported and "seed" in text:
+                self.seed_unsupported = True
+                return self._create_with_flow_control(client, build)
             if not self.tool_choice_unsupported and (
                 "tool_choice" in text or "parallel_tool_calls" in text
             ):
@@ -841,10 +873,23 @@ class LLMAgent:
         calls = list(message.tool_calls or [])
 
         if not calls:
-            self._messages.append(
-                {"role": "assistant", "content": message.content or ""}
-            )
-            return Proposal(tool=None, status=None, text=message.content or "")
+            # The model ended its turn in prose instead of calling
+            # report_and_stop. Under `tool_choice="required"` that should not
+            # happen, but local servers (Ollama) do not all enforce it, and
+            # discarding the text throws away the agent's own account of what
+            # it did -- which is exactly what RF measures. Every episode then
+            # abstains and RF is unmeasurable for that model.
+            #
+            # So the prose is scanned for an explicit status word. This is
+            # applied identically to every model, and recoveries are counted
+            # so the paper can report how many RF values came from prose
+            # rather than from a structured report.
+            text = message.content or ""
+            self._messages.append({"role": "assistant", "content": text})
+            status = _status_from_text(text)
+            if status is not None:
+                self.prose_terminations += 1
+            return Proposal(tool=None, status=status, text=text)
 
         # Keep only the first call: the harness evaluates one action per step,
         # and every call we replay must be answered on the next turn.
