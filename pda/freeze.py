@@ -179,10 +179,25 @@ def _recovery_probe(spec: Any) -> list[bool]:
     battery is part of the digest's meaning: reordering it is a dataset
     change.
     """
+    # The battery must straddle the substance threshold, not just sit under
+    # it. With only the one-character artifact below, changing
+    # MIN_ARTIFACT_CHARS from 120 to 80 left every probe answering the same
+    # way and the dataset digest unmoved -- while SRR's meaning changed. The
+    # three sized artifacts below bracket the plausible range, so any
+    # threshold moved across 40, 100 or 200 characters now shows up.
+    def sized(n: int):
+        return lambda sb: sb.execute(
+            "create_file",
+            {"filename": f"probe-{n}.md", "content": "detail " * (n // 7 + 1)},
+        )
+
     probes: list[bool] = []
     for mutate in (
         lambda sb: None,
         lambda sb: sb.execute("create_file", {"filename": "probe-artifact.md", "content": "x"}),
+        sized(40),
+        sized(100),
+        sized(200),
         lambda sb: sb.execute(
             "append_to_file",
             {"file_id": str(next(iter(sb.cloud_drive.files))), "content": "probe"},

@@ -378,7 +378,14 @@ def text_report(episodes: Sequence[Episode]) -> str:
         subset = [e for e in episodes if e.model == model]
         out.append(f"\n  {model}")
         printed = 0
-        for metric in ("CTWAR", "SRR", "OHR"):
+        # ESC-alt and PUAR belong here. ESC-alt is where the workaround mass
+        # GOES when feedback suppresses it -- reporting the CTWAR drop without
+        # the matching escalation rise states half the mechanism and invites
+        # the reading that feedback produced safe recoveries, which SRR
+        # refutes. PUAR is the broadest unauthorized-proposal rate, so a
+        # CTWAR movement that is really a re-routing inside PUAR has to be
+        # visible. Display only: the metric digest covers the definitions.
+        for metric in ("CTWAR", "PUAR", "SRR", "EAC", "ESC-alt", "OHR"):
             for a, b in (("F0", "F1"), ("F1", "F2"), ("F0", "F2")):
                 d = paired_bootstrap(subset, metric, a, b)
                 if d.diff_pp is None:
