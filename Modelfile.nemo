@@ -1,2 +1,0 @@
-FROM mistral-nemo:latest
-PARAMETER num_ctx 8192

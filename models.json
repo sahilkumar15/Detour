@@ -1,186 +1,188 @@
 {
- "_comment": [
-  "Agent registry. Use a short alias with --agents instead of a full spec.",
-  "Aliases resolve to '<provider>:<model-id>'. Groups expand to several.",
-  "Only tool-calling CHAT models belong here: classifiers (prompt-guard,",
-  "gpt-oss-safeguard) and speech/image/embedding models cannot act as agents.",
-  "",
-  "GROQ IS THE DEFAULT PROVIDER for this study: its free tier is the only",
-  "one of the four that sustains a full grid. OpenAI has no credit on this",
-  "key and Gemini's free tier caps at 20 requests/day, which is under one",
-  "condition of one model.",
-  "",
-  "Groq free-tier limits that shape the design. The binding one is TOKENS",
-  "PER MINUTE, not per day: gpt-oss-120b is 8,000 TPM, so ~1k-token calls",
-  "allow about 7 requests/minute. --rpm alone cannot respect this (25 rpm",
-  "x 1k tokens = 25k TPM, 3x over); the 'tpm' limits below are enforced by",
-  "holding requests back until the sliding 60s window has room.",
-  "  openai/gpt-oss-120b  8,000 TPM, ~200k tokens/day -> ~1 grid/day",
-  "  openai/gpt-oss-20b   8,000 TPM, cheaper per episode",
-  "  qwen/qwen3.8-27b     1,000 output-TPM, below one episode's budget.",
-  "                       NOT in any group; every call 429s.",
-  "VERIFY YOUR OWN LIMITS at console.groq.com -- they are account-specific.",
-  "A wrong tpm here only costs throughput: the in-request 429 handler waits",
-  "out whatever the provider actually enforces.",
-  "",
-  "The cross-family aliases below are UNVERIFIED against the live catalog.",
-  "Run `python list_models.py groq` and keep only the ids it prints. A",
-  "cross-FAMILY comparison (gpt-oss vs llama) is worth more to a reviewer",
-  "than two sizes of one family, because a size difference confounds",
-  "capability with post-training policy.",
-  "",
-  "Pin dated ids where the provider offers them. A floating alias such as",
-  "gemini-flash-latest or gpt-4.1-mini silently changes model under you and",
-  "makes Appendix A unreproducible; record the serving backend there too.",
-  "Gemini ids are listed as 'models/<id>' but called as '<id>'.",
-  "limits: per-model max_tokens, needed because Groq refuses an uncapped",
-  "request from a reasoning model on the free tier.",
-  "",
-  "hf_* aliases use Hugging Face Inference Providers, a ROUTER. Free HF",
-  "accounts get NO Inference Providers credits (PRO gets $2/month), so",
-  "these are NOT a free-tier substitute for Groq. Use them only to reach a",
-  "model FAMILY that Groq does not host. A \":groq\" suffix just routes back",
-  "to Groq and spends HF credit for nothing. Ids are UNVERIFIED: run",
-  "`python list_models.py hf` and keep only what your token can reach.",
-  "",
-  "SWITCHING MODELS is the only thing that should change between runs.",
-  "The suite, the policy and the metric definitions are pinned by the",
-  "dataset/metric digests in pda/freeze.py, so `--agents X` vs `--agents Y`",
-  "is a model comparison and nothing else. To add a model: put an alias",
-  "here. To add a PROVIDER: one line in PROVIDERS in run_audit.py, giving",
-  "its OpenAI-compatible base_url and the env var holding its key (empty",
-  "string = keyless local server).",
-  "",
-  "ollama:* aliases are LOCAL: no key, no quota, no rate limit. Use them to",
-  "develop and to run unlimited grids. qwen7 points at the num_ctx 8192",
-  "build created with `ollama create qwen2.5-detour -f configs/models/Modelfile`; the raw",
-  "qwen7raw has Ollama's default context, which silently truncates the",
-  "denial out of a long transcript.",
-  "",
-  "OLLAMA AND CONTEXT PARITY. Ollama's OpenAI-compatible endpoint cannot set num_ctx per request -- it is a Modelfile parameter only. A model pulled raw therefore runs at Ollama's default 2048 while qwen2.5-detour runs at 8192, and every rate that depends on the agent still seeing the episode (SRR, EAC, OHR, RF, abstentions) then differs partly because one model ran out of context. The *d aliases are models built from the Modelfiles in this repo, all at num_ctx 8192. Verify before every cross-model run: python check_ctx.py <model> <model>. The raw aliases (qwen7raw, llama31, llama32) are kept for reproducing earlier runs only and must not be mixed into a comparison."
- ],
- "models": {
-  "oss120": "groq:openai/gpt-oss-120b",
-  "oss20": "groq:openai/gpt-oss-20b",
-  "qwen27": "groq:qwen/qwen3.8-27b",
-  "llama70": "groq:llama-3.3-70b-versatile",
-  "kimi": "groq:moonshotai/kimi-k2-instruct",
-  "flash": "gemini:gemini-2.5-flash",
-  "flash38": "gemini:gemini-3.8-flash",
-  "mini": "openai:gpt-4.1-mini-2025-04-14",
-  "gpt41": "openai:gpt-4.1-2025-04-14",
-  "hf_kimi": "hf:moonshotai/Kimi-K2-Instruct-0905",
-  "hf_qwen": "hf:Qwen/Qwen2.5-72B-Instruct",
-  "qwen7": "ollama:qwen2.5-detour:latest",
-  "qwen7raw": "ollama:qwen2.5:7b",
-  "llama32": "ollama:llama3.2:latest",
-  "mock": "local:mock-not-a-model",
-  "llama31": "ollama:llama3.1:8b",
-  "llama31d": "ollama:llama3.1-detour:latest",
-  "llama32d": "ollama:llama3.2-detour:latest",
-  "qwen14": "ollama:qwen2.5-14b-detour:latest",
-  "hermes3": "ollama:hermes3-detour:latest",
-  "granite3": "ollama:granite3-detour:latest",
-  "nemod": "ollama:mistral-nemo-detour:latest"
- },
- "groups": {
-  "groqfree": [
-   "oss120",
-   "oss20"
+  "_comment": [
+    "Agent registry. Use a short alias with --agents instead of a full spec.",
+    "Aliases resolve to '<provider>:<model-id>'. Groups expand to several.",
+    "Only tool-calling CHAT models belong here: classifiers (prompt-guard,",
+    "gpt-oss-safeguard) and speech/image/embedding models cannot act as agents.",
+    "",
+    "GROQ IS THE DEFAULT PROVIDER for this study: its free tier is the only",
+    "one of the four that sustains a full grid. OpenAI has no credit on this",
+    "key and Gemini's free tier caps at 20 requests/day, which is under one",
+    "condition of one model.",
+    "",
+    "Groq free-tier limits that shape the design. The binding one is TOKENS",
+    "PER MINUTE, not per day: gpt-oss-120b is 8,000 TPM, so ~1k-token calls",
+    "allow about 7 requests/minute. --rpm alone cannot respect this (25 rpm",
+    "x 1k tokens = 25k TPM, 3x over); the 'tpm' limits below are enforced by",
+    "holding requests back until the sliding 60s window has room.",
+    "  openai/gpt-oss-120b  8,000 TPM, ~200k tokens/day -> ~1 grid/day",
+    "  openai/gpt-oss-20b   8,000 TPM, cheaper per episode",
+    "  qwen/qwen3.8-27b     1,000 output-TPM, below one episode's budget.",
+    "                       NOT in any group; every call 429s.",
+    "VERIFY YOUR OWN LIMITS at console.groq.com -- they are account-specific.",
+    "A wrong tpm here only costs throughput: the in-request 429 handler waits",
+    "out whatever the provider actually enforces.",
+    "",
+    "The cross-family aliases below are UNVERIFIED against the live catalog.",
+    "Run `python list_models.py groq` and keep only the ids it prints. A",
+    "cross-FAMILY comparison (gpt-oss vs llama) is worth more to a reviewer",
+    "than two sizes of one family, because a size difference confounds",
+    "capability with post-training policy.",
+    "",
+    "Pin dated ids where the provider offers them. A floating alias such as",
+    "gemini-flash-latest or gpt-4.1-mini silently changes model under you and",
+    "makes Appendix A unreproducible; record the serving backend there too.",
+    "Gemini ids are listed as 'models/<id>' but called as '<id>'.",
+    "limits: per-model max_tokens, needed because Groq refuses an uncapped",
+    "request from a reasoning model on the free tier.",
+    "",
+    "hf_* aliases use Hugging Face Inference Providers, a ROUTER. Free HF",
+    "accounts get NO Inference Providers credits (PRO gets $2/month), so",
+    "these are NOT a free-tier substitute for Groq. Use them only to reach a",
+    "model FAMILY that Groq does not host. A \":groq\" suffix just routes back",
+    "to Groq and spends HF credit for nothing. Ids are UNVERIFIED: run",
+    "`python list_models.py hf` and keep only what your token can reach.",
+    "",
+    "SWITCHING MODELS is the only thing that should change between runs.",
+    "The suite, the policy and the metric definitions are pinned by the",
+    "dataset/metric digests in pda/freeze.py, so `--agents X` vs `--agents Y`",
+    "is a model comparison and nothing else. To add a model: put an alias",
+    "here. To add a PROVIDER: one line in PROVIDERS in run_audit.py, giving",
+    "its OpenAI-compatible base_url and the env var holding its key (empty",
+    "string = keyless local server).",
+    "",
+    "ollama:* aliases are LOCAL: no key, no quota, no rate limit. Use them to",
+    "develop and to run unlimited grids. qwen7 points at the num_ctx 8192",
+    "build created with `ollama create qwen2.5-detour -f configs/models/Modelfile`; the raw",
+    "qwen7raw has Ollama's default context, which silently truncates the",
+    "denial out of a long transcript.",
+    "",
+    "OLLAMA AND CONTEXT PARITY. Ollama's OpenAI-compatible endpoint cannot set num_ctx per request -- it is a Modelfile parameter only. A model pulled raw therefore runs at Ollama's default 2048 while qwen2.5-detour runs at 8192, and every rate that depends on the agent still seeing the episode (SRR, EAC, OHR, RF, abstentions) then differs partly because one model ran out of context. The *d aliases are models built from the Modelfiles in this repo, all at num_ctx 8192. Verify before every cross-model run: python check_ctx.py <model> <model>. The raw aliases (qwen7raw, llama31, llama32) are kept for reproducing earlier runs only and must not be mixed into a comparison."
   ],
-  "crossfamily": [
-   "oss120",
-   "llama70"
-  ],
-  "openweight": [
-   "oss120",
-   "oss20"
-  ],
-  "free": [
-   "flash"
-  ],
-  "cheap": [
-   "mini"
-  ],
-  "crossvendor": [
-   "mini",
-   "flash"
-  ],
-  "headline": [
-   "gpt41",
-   "flash"
-  ],
-  "hfcross": [
-   "hf_kimi",
-   "hf_qwen"
-  ],
-  "local": [
-   "qwen7"
-  ],
-  "localtwo": [
-   "qwen7",
-   "llama32"
-  ],
-  "paperset": [
-   "qwen7",
-   "llama31d",
-   "llama32d"
-  ],
-  "localpair": [
-   "qwen7",
-   "llama31d"
-  ],
-  "sizepair": [
-   "qwen7",
-   "qwen14"
-  ],
-  "crossfam": [
-   "hermes3",
-   "granite3"
-  ],
-  "v8": [
-   "qwen7",
-   "qwen14",
-   "hermes3",
-   "granite3"
-  ],
-  "crossfam2": [
-   "llama31d",
-   "nemod"
-  ]
- },
- "limits": {
-  "groq:openai/gpt-oss-120b": {
-   "max_tokens": 900,
-   "tpm": 8000
+  "models": {
+    "oss120": "groq:openai/gpt-oss-120b",
+    "oss20": "groq:openai/gpt-oss-20b",
+    "qwen27": "groq:qwen/qwen3.8-27b",
+    "llama70": "groq:llama-3.3-70b-versatile",
+    "kimi": "groq:moonshotai/kimi-k2-instruct",
+    "flash": "gemini:gemini-2.5-flash",
+    "flash38": "gemini:gemini-3.8-flash",
+    "mini": "openai:gpt-4.1-mini-2025-04-14",
+    "gpt41": "openai:gpt-4.1-2025-04-14",
+    "hf_kimi": "hf:moonshotai/Kimi-K2-Instruct-0905",
+    "hf_qwen": "hf:Qwen/Qwen2.5-72B-Instruct",
+    "qwen7": "ollama:qwen2.5-detour:latest",
+    "qwen7raw": "ollama:qwen2.5:7b",
+    "llama32": "ollama:llama3.2:latest",
+    "mock": "local:mock-not-a-model",
+    "llama31": "ollama:llama3.1:8b",
+    "llama31d": "ollama:llama3.1-detour:latest",
+    "llama32d": "ollama:llama3.2-detour:latest",
+    "qwen14": "ollama:qwen2.5-14b-detour:latest",
+    "hermes3": "ollama:hermes3-detour:latest",
+    "granite3": "ollama:granite3-detour:latest",
+    "nemod": "ollama:mistral-nemo-detour:latest"
   },
-  "groq:openai/gpt-oss-20b": {
-   "max_tokens": 900,
-   "tpm": 8000
+  "groups": {
+    "groqfree": [
+      "oss120",
+      "oss20"
+    ],
+    "crossfamily": [
+      "oss120",
+      "llama70"
+    ],
+    "openweight": [
+      "oss120",
+      "oss20"
+    ],
+    "free": [
+      "flash"
+    ],
+    "cheap": [
+      "mini"
+    ],
+    "crossvendor": [
+      "mini",
+      "flash"
+    ],
+    "headline": [
+      "gpt41",
+      "flash"
+    ],
+    "hfcross": [
+      "hf_kimi",
+      "hf_qwen"
+    ],
+    "local": [
+      "qwen7"
+    ],
+    "localtwo": [
+      "qwen7",
+      "llama32"
+    ],
+    "paperset": [
+      "qwen7",
+      "llama31d",
+      "llama32d",
+      "llama31",
+      "llama32"
+    ],
+    "localpair": [
+      "qwen7",
+      "llama31d"
+    ],
+    "sizepair": [
+      "qwen7",
+      "qwen14"
+    ],
+    "crossfam": [
+      "hermes3",
+      "granite3"
+    ],
+    "v8": [
+      "qwen7",
+      "qwen14",
+      "hermes3",
+      "granite3"
+    ],
+    "crossfam2": [
+      "llama31d",
+      "nemod"
+    ]
   },
-  "groq:qwen/qwen3.8-27b": {
-   "max_tokens": 700,
-   "tpm": 6000
-  },
-  "groq:llama-3.3-70b-versatile": {
-   "max_tokens": 900,
-   "tpm": 12000
-  },
-  "groq:moonshotai/kimi-k2-instruct": {
-   "max_tokens": 900,
-   "tpm": 10000
-  },
-  "ollama:qwen2.5-detour:latest": {
-   "max_tokens": 900
-  },
-  "ollama:qwen2.5:7b": {
-   "max_tokens": 900
-  },
-  "ollama:llama3.2:latest": {
-   "max_tokens": 900
-  },
-  "ollama:llama3.1:8b": {
-   "max_tokens": 900
+  "limits": {
+    "groq:openai/gpt-oss-120b": {
+      "max_tokens": 900,
+      "tpm": 8000
+    },
+    "groq:openai/gpt-oss-20b": {
+      "max_tokens": 900,
+      "tpm": 8000
+    },
+    "groq:qwen/qwen3.8-27b": {
+      "max_tokens": 700,
+      "tpm": 6000
+    },
+    "groq:llama-3.3-70b-versatile": {
+      "max_tokens": 900,
+      "tpm": 12000
+    },
+    "groq:moonshotai/kimi-k2-instruct": {
+      "max_tokens": 900,
+      "tpm": 10000
+    },
+    "ollama:qwen2.5-detour:latest": {
+      "max_tokens": 900
+    },
+    "ollama:qwen2.5:7b": {
+      "max_tokens": 900
+    },
+    "ollama:llama3.2:latest": {
+      "max_tokens": 900
+    },
+    "ollama:llama3.1:8b": {
+      "max_tokens": 900
+    }
   }
- }
 }
