@@ -632,14 +632,26 @@ class LLMAgent:
         return None
 
     def _is_rate_limit(self, exc: Exception) -> bool:
-        if type(exc).__name__ == "RateLimitError":
-            return True
+        """Retry short-window limits, but not exhausted daily quotas."""
         text = str(exc).lower()
-        if "rate_limit_exceeded" in text or "rate limit reached" in text:
-            # A per-DAY quota is not flow control; it will not clear by
-            # waiting a minute, so let it propagate and stop the run.
-            return "per day" not in text and "tokens per day" not in text
-        return False
+
+        daily_markers = (
+            "tokens per day",
+            "requests per day",
+            "per-day",
+            "per_day",
+            "(tpd)",
+            "(rpd)",
+        )
+
+        if any(marker in text for marker in daily_markers):
+            return False
+
+        return (
+            type(exc).__name__ == "RateLimitError"
+            or "rate_limit_exceeded" in text
+            or "rate limit reached" in text
+        )
 
     def _ensure_client(self) -> Any:
         if self._client is None:

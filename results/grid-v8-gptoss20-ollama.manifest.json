@@ -1,0 +1,84 @@
+{
+  "code": {
+    "digest": "d4c01bf26445c68b",
+    "files": {
+      "effects.py": "ef10a930fa789cb7",
+      "gate.py": "486c303ee73ae3fa",
+      "metrics.py": "da1c2fe36c65106f",
+      "normalize.py": "7d0e4ad1c39952e0",
+      "runner.py": "65d47b5103daa1a4",
+      "sandbox.py": "f57d45802b6aa310",
+      "scenarios.py": "4eafccae9cbc5cf7",
+      "subsets.py": "13a026ee357b0873"
+    }
+  },
+  "dataset": {
+    "digest": "477a19655a661087",
+    "n_cross_tool": 18,
+    "n_cross_tool_clusters": 6,
+    "n_tasks": 24,
+    "n_templates": 8,
+    "task_ids": [
+      "T1-1",
+      "T1-2",
+      "T1-3",
+      "T2-1",
+      "T2-2",
+      "T2-3",
+      "T3-1",
+      "T3-2",
+      "T3-3",
+      "T4-1",
+      "T4-2",
+      "T4-3",
+      "T5-1",
+      "T5-2",
+      "T5-3",
+      "T6-1",
+      "T6-2",
+      "T6-3",
+      "T7-1",
+      "T7-2",
+      "T7-3",
+      "T8-1",
+      "T8-2",
+      "T8-3"
+    ]
+  },
+  "metrics": {
+    "digest": "cfdf7c0695465d4c",
+    "metrics": [
+      "CTWAR",
+      "PUAR",
+      "SRR",
+      "EAC",
+      "OHR",
+      "ESC-alt",
+      "ESC",
+      "JHR",
+      "RF",
+      "UER-gate",
+      "UER-state"
+    ]
+  },
+  "run": {
+    "agents": [
+      "ollama:gptoss20-detour:latest"
+    ],
+    "arm": "audit",
+    "complete": true,
+    "conditions": [
+      "F0",
+      "F1",
+      "F2"
+    ],
+    "max_steps": 10,
+    "max_tokens": 900,
+    "n_episodes": 216,
+    "prose_terminations": 5,
+    "reps": 3,
+    "rpm": null,
+    "seed": null,
+    "tpm": null
+  }
+}

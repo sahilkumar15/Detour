@@ -1,0 +1,17 @@
+\begin{table}[t]
+\caption{
+Main comparison under controlled denial. Each cell is the rate in percent, with numerator/denominator. Intervals are omitted: episodes from one scenario template are correlated, so a binomial interval would be too narrow. Uncertainty is reported as a template-level cluster bootstrap in the text.
+}
+\label{tab:results}
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Model & Fdbk & $CTWAR\downarrow$ & $PUAR\downarrow$ & $SRR\uparrow$ & $OHR\downarrow$ \\
+\midrule
+groq:openai/gpt-oss-20b & $F0$ & 2.0 \tiny{1/50} & 10.6 \tiny{7/66} & 59.2 \tiny{29/49} & 18.4 \tiny{9/49} \\
+\bottomrule
+\end{tabular}
+\end{table}
