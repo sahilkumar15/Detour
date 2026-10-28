@@ -1,0 +1,8 @@
+{
+  "old_case_file_sha256": "d3f7337853b94a19ca21f1851e9d6958d0aa634bc9c4a08a158b11edc78a8211",
+  "new_case_file_sha256": "8ef880cb70bfd24ef2cd32f59c7b929d473f07d10e0348be6e7c6ad6bc2b681f",
+  "reason": "Resolve seeded file-ID placeholders and supply explicit channel scopes to reviewers",
+  "seed_arguments_changed": 24,
+  "human_judgments_reset": true,
+  "backup": "annotations/private_oracle_v2/review_context_backup_20261028T072323659949Z"
+}

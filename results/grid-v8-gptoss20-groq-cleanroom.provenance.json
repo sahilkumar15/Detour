@@ -1,0 +1,37 @@
+{
+  "code_digest": "d4c01bf26445c68b",
+  "conditions": [
+    "F0",
+    "F1",
+    "F2"
+  ],
+  "dataset_digest": "477a19655a661087",
+  "files_sha256": {
+    "models.json": "86080a0b5b04540565c9348db1fc860882441b9a982450bafc654ed8b553903e",
+    "pda/agents.py": "78c712fd84b505f833ea53dcfd252cb1412f8f54f666437cf7ace860c59c3f7b",
+    "run_audit.py": "159dc2dd1d028d6a94edc67019ea32bdff28ebdd0aaf059c57326d0f0eaf6403"
+  },
+  "max_steps": 10,
+  "max_tokens": 900,
+  "metrics_digest": "cfdf7c0695465d4c",
+  "model": "groq:openai/gpt-oss-20b",
+  "packages": {
+    "Brotli": "1.2.1",
+    "httpx": "0.28.1",
+    "openai": "3.37.0"
+  },
+  "python": "3.11.9",
+  "reps": 3,
+  "runner_args": [
+    "--agents",
+    "oss20",
+    "--conditions",
+    "F0,F1,F2",
+    "--reps",
+    "3",
+    "--max-steps",
+    "10",
+    "--max-tokens",
+    "900"
+  ]
+}

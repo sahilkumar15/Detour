@@ -1,0 +1,27 @@
+{
+  "captured_utc": "2026-10-28T07:57:06.482213+00:00",
+  "warning": "Current environment is not proof of historical run adapter state.",
+  "git_head": {
+    "returncode": 0,
+    "text": "8e5ea658dc914225dc85a6dec59504c1e927b0b9\n"
+  },
+  "git_dirty": {
+    "returncode": 0,
+    "text": " m agentdojo\n?? annotations/private_oracle_v2/\n?? annotations/submission_blinded_v2/\n?? results/.gptoss20-groq-cleanroom.lock\n?? results/.groq-audit-resume.lock\n?? results/backups/\n?? results/grid-v8-gptoss20-groq-cleanroom.jsonl\n?? results/grid-v8-gptoss20-groq-cleanroom.provenance.json\n?? results/reviewer_diagnostics/\n?? results/submission_review-4models/\n?? results/trust27_evidence/\n?? scripts/detour_annotation_workflow.py\n?? scripts/detour_remaining_evidence.py\n?? scripts/finish_groq_audit.py\n?? scripts/fix_detour_annotation_setup.sh\n?? scripts/groq_cleanroom.py\n?? scripts/prepare_detour_annotations.py\n?? scripts/prepare_detour_annotations.py.before_import_fix\n?? scripts/repair_detour_annotation_context.sh\n?? scripts/reviewer_diagnostics.py\n?? scripts/score_human_annotations.py\n?? scripts/takeover_groq_run.sh\n"
+  },
+  "ollama": {
+    "returncode": 0,
+    "text": "ollama version is 0.40.11\n"
+  },
+  "ollama_list": {
+    "returncode": 0,
+    "text": "NAME                       ID              SIZE     MODIFIED   \nllama70-detour:latest      94946b526c7e    42 GB    2 days ago    \nmistral24-detour:latest    22351593d392    15 GB    2 days ago    \ngptoss20-detour:latest     a1c927e2b35f    13 GB    2 days ago    \nllama3.3:70b               a6eb4748fd29    42 GB    2 days ago    \nmistral-small3.2:24b       5a408ab55df5    15 GB    2 days ago    \ngpt-oss:20b                f38aa0c53da5    13 GB    2 days ago    \n"
+  },
+  "current_agents_sha256": "78c712fd84b505f833ea53dcfd252cb1412f8f54f666437cf7ace860c59c3f7b",
+  "trace_sha256": {
+    "grid-v8-qwen7.jsonl": "d4dfb04544d42bd2ef51c49c85c3840d23e0316f86517ae594fc2ec0051166b4",
+    "grid-v8-qwen14.jsonl": "8a06ce4b11006d071bb8738754678d86a479171a6e69a98d0fc47bf8930bcaf5",
+    "grid-v9-mistral24.jsonl": "15b3c5af37527791cc7cdc2672ebdb65e2c3afa370089fe2efd068d45a24d602",
+    "grid-v8-gptoss20-ollama.jsonl": "00928264519b264af26480f72a794dcdbe7f71678fb097f8369d22bc3e5f9a6b"
+  }
+}

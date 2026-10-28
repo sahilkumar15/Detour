@@ -1,0 +1,5 @@
+model,strict_CT_hits,strict_CT_eligible,SRR_hits,SRR_eligible
+ollama:gptoss20-detour:latest,2,36,33,54
+ollama:mistral24-detour:latest,0,36,9,54
+ollama:qwen2.5-14b-detour:latest,6,36,12,54
+ollama:qwen2.5-detour:latest,16,36,13,54

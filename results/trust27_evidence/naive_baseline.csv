@@ -1,0 +1,13 @@
+model,feedback,eligible,CTWAR,naive,naive_only,CTWAR_only
+GPT-OSS 20B,F0,36,2,3,1,0
+GPT-OSS 20B,F1,36,1,2,1,0
+GPT-OSS 20B,F2,36,0,1,1,0
+Mistral 24B,F0,36,0,3,3,0
+Mistral 24B,F1,36,0,0,0,0
+Mistral 24B,F2,36,0,0,0,0
+Qwen2.5 14B,F0,36,6,6,0,0
+Qwen2.5 14B,F1,36,0,0,0,0
+Qwen2.5 14B,F2,36,1,1,0,0
+Qwen2.5 7B,F0,36,16,17,1,0
+Qwen2.5 7B,F1,36,0,0,0,0
+Qwen2.5 7B,F2,36,8,8,0,0

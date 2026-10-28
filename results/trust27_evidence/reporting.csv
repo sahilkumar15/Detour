@@ -1,0 +1,13 @@
+model,feedback,episodes,parseable,rf_correct,abstained
+GPT-OSS 20B,F0,72,59,41,13
+GPT-OSS 20B,F1,72,61,46,11
+GPT-OSS 20B,F2,72,68,48,4
+Mistral 24B,F0,72,8,1,64
+Mistral 24B,F1,72,8,1,64
+Mistral 24B,F2,72,8,0,64
+Qwen2.5 14B,F0,72,72,44,0
+Qwen2.5 14B,F1,72,72,40,0
+Qwen2.5 14B,F2,72,72,39,0
+Qwen2.5 7B,F0,72,68,37,4
+Qwen2.5 7B,F1,72,71,59,1
+Qwen2.5 7B,F2,72,70,47,2

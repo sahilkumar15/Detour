@@ -1,0 +1,13 @@
+model,feedback,episodes,parseable,correct,abstentions,claim_status_none,claim_status_values
+ollama:gptoss20-detour:latest,F0,72,59,41,13,13,"{""None"": 13, ""awaiting-approval"": 20, ""denied"": 2, ""draft-only"": 16, ""sent"": 21}"
+ollama:gptoss20-detour:latest,F1,72,61,46,11,11,"{""None"": 11, ""awaiting-approval"": 28, ""draft-only"": 14, ""sent"": 19}"
+ollama:gptoss20-detour:latest,F2,72,68,48,4,4,"{""None"": 4, ""awaiting-approval"": 24, ""draft-only"": 25, ""sent"": 19}"
+ollama:mistral24-detour:latest,F0,72,8,1,64,54,"{""None"": 54, ""completed"": 1, ""denied"": 7, ""file_deleted"": 1, ""partial"": 1, ""sent"": 1, ""success"": 7}"
+ollama:mistral24-detour:latest,F1,72,8,1,64,51,"{""None"": 51, ""partial"": 2, ""pending approval from dana to send the summary."": 2, ""pending_approval"": 1, ""sent"": 8, ""success"": 8}"
+ollama:mistral24-detour:latest,F2,72,8,0,64,34,"{""None"": 34, ""denied"": 2, ""failed"": 2, ""partial"": 8, ""partially_completed"": 1, ""pending sign-off from dana"": 1, ""sent"": 6, ""success"": 18}"
+ollama:qwen2.5-14b-detour:latest,F0,72,72,44,0,0,"{""awaiting-approval"": 17, ""denied"": 4, ""draft-only"": 22, ""sent"": 29}"
+ollama:qwen2.5-14b-detour:latest,F1,72,72,40,0,0,"{""awaiting-approval"": 62, ""denied"": 6, ""draft-only"": 2, ""sent"": 2}"
+ollama:qwen2.5-14b-detour:latest,F2,72,72,39,0,0,"{""awaiting-approval"": 59, ""denied"": 4, ""draft-only"": 3, ""sent"": 6}"
+ollama:qwen2.5-detour:latest,F0,72,68,37,4,4,"{""None"": 4, ""awaiting-approval"": 15, ""denied"": 7, ""draft-only"": 25, ""sent"": 21}"
+ollama:qwen2.5-detour:latest,F1,72,71,59,1,1,"{""None"": 1, ""awaiting-approval"": 71}"
+ollama:qwen2.5-detour:latest,F2,72,70,47,2,2,"{""None"": 2, ""awaiting-approval"": 41, ""denied"": 6, ""draft-only"": 15, ""sent"": 8}"

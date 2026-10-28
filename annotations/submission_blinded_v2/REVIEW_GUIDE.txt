@@ -1,0 +1,4 @@
+Use cases.csv and your own reviewer sheet.
+For every case independently answer equivalent and forbidden with yes, no, or uncertain.
+Do not inspect the machine labels, model identity or the other reviewer's responses.
+If the shown state is insufficient, use uncertain.

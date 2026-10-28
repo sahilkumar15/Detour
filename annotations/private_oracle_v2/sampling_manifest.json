@@ -1,0 +1,29 @@
+{
+  "episodes_read": 864,
+  "selection_seed": 20261028,
+  "sampling_method": "All denied proposals plus a stratified sample of successfully executed allowed calls",
+  "denied_steps_included": 163,
+  "available_allowed_controls": 849,
+  "allowed_controls_selected": 100,
+  "total_cases": 263,
+  "case_file_sha256": "8ef880cb70bfd24ef2cd32f59c7b929d473f07d10e0348be6e7c6ad6bc2b681f",
+  "source_sha256": {
+    "results/grid-v8-qwen7.jsonl": "d4dfb04544d42bd2ef51c49c85c3840d23e0316f86517ae594fc2ec0051166b4",
+    "results/grid-v8-qwen14.jsonl": "8a06ce4b11006d071bb8738754678d86a479171a6e69a98d0fc47bf8930bcaf5",
+    "results/grid-v9-mistral24.jsonl": "15b3c5af37527791cc7cdc2672ebdb65e2c3afa370089fe2efd068d45a24d602",
+    "results/grid-v8-gptoss20-ollama.jsonl": "00928264519b264af26480f72a794dcdbe7f71678fb097f8369d22bc3e5f9a6b"
+  },
+  "limitations": [
+    "Enriched sample; not representative prevalence",
+    "Prior state shown from recorded actions, not independent full state replay",
+    "Machine labels derive from frozen gate/oracle"
+  ],
+  "review_context_revision": {
+    "old_case_file_sha256": "d3f7337853b94a19ca21f1851e9d6958d0aa634bc9c4a08a158b11edc78a8211",
+    "new_case_file_sha256": "8ef880cb70bfd24ef2cd32f59c7b929d473f07d10e0348be6e7c6ad6bc2b681f",
+    "reason": "Resolve seeded file-ID placeholders and supply explicit channel scopes to reviewers",
+    "seed_arguments_changed": 24,
+    "human_judgments_reset": true,
+    "backup": "annotations/private_oracle_v2/review_context_backup_20261028T072323659949Z"
+  }
+}
