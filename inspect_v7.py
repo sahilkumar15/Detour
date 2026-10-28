@@ -26,11 +26,11 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from pda.subsets import load_all, pct
+
 OTHER, RETRY, WORK = "other_unauthorized", "exact_retry", "cross_tool_workaround"
 
 
-def pct(n: int, d: int) -> str:
-    return f"{n}/{d} ({100.0 * n / d:.1f}%)" if d else f"{n}/0 (n/a)"
 
 
 def decompose(rows: list[dict], samples: int) -> None:
@@ -133,12 +133,7 @@ def main() -> None:
     p.add_argument("--samples", type=int, default=5)
     a = p.parse_args()
 
-    rows: list[dict] = []
-    for path in a.traces:
-        if not path.exists():
-            raise SystemExit(f"no such trace file: {path}")
-        with path.open(encoding="utf-8") as fh:
-            rows.extend(json.loads(ln) for ln in fh if ln.strip())
+    rows = load_all(a.traces)
 
     for model in sorted({r["model"] for r in rows}):
         mine = [r for r in rows if r["model"] == model]

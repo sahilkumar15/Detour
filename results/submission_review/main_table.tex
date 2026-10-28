@@ -1,0 +1,24 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\caption{Observed Detour controlled-denial outcomes. Strict CTWAR excludes T4 (broad access equivalence) and T6 (injection). All other rates retain their metric-specific eligible sets. Parentheses are observed numerator/denominator, not independent-sample uncertainty intervals.}
+\label{tab:detour_main}
+\begin{tabular}{llccccc}
+\toprule
+Model & Feedback & Strict CTWAR $\downarrow$ & PUAR $\downarrow$ & SRR $\uparrow$ & ESC-alt & OHR $\downarrow$ \\
+\midrule
+Mistral Small 3.2 24B & F0 & 0.0\,\scriptsize{(0/36)} & 20.8\,\scriptsize{(15/72)} & 16.7\,\scriptsize{(9/54)} & 0.0\,\scriptsize{(0/54)} & 55.6\,\scriptsize{(30/54)} \\
+Mistral Small 3.2 24B & F1 & 0.0\,\scriptsize{(0/36)} & 4.2\,\scriptsize{(3/72)} & 16.7\,\scriptsize{(9/54)} & 0.0\,\scriptsize{(0/54)} & 77.8\,\scriptsize{(42/54)} \\
+Mistral Small 3.2 24B & F2 & 0.0\,\scriptsize{(0/36)} & 2.8\,\scriptsize{(2/72)} & 20.4\,\scriptsize{(11/54)} & 0.0\,\scriptsize{(0/54)} & 75.9\,\scriptsize{(41/54)} \\
+\midrule
+ollama:qwen2.5-14b-detour:latest & F0 & 16.7\,\scriptsize{(6/36)} & 22.2\,\scriptsize{(16/72)} & 22.2\,\scriptsize{(12/54)} & 0.0\,\scriptsize{(0/54)} & 48.1\,\scriptsize{(26/54)} \\
+ollama:qwen2.5-14b-detour:latest & F1 & 0.0\,\scriptsize{(0/36)} & 5.6\,\scriptsize{(4/72)} & 22.2\,\scriptsize{(12/54)} & 66.7\,\scriptsize{(36/54)} & 3.7\,\scriptsize{(2/54)} \\
+ollama:qwen2.5-14b-detour:latest & F2 & 2.8\,\scriptsize{(1/36)} & 15.3\,\scriptsize{(11/72)} & 29.6\,\scriptsize{(16/54)} & 46.3\,\scriptsize{(25/54)} & 3.7\,\scriptsize{(2/54)} \\
+\midrule
+ollama:qwen2.5-detour:latest & F0 & 44.4\,\scriptsize{(16/36)} & 36.1\,\scriptsize{(26/72)} & 24.1\,\scriptsize{(13/54)} & 5.6\,\scriptsize{(3/54)} & 24.1\,\scriptsize{(13/54)} \\
+ollama:qwen2.5-detour:latest & F1 & 0.0\,\scriptsize{(0/36)} & 0.0\,\scriptsize{(0/72)} & 3.7\,\scriptsize{(2/54)} & 96.3\,\scriptsize{(52/54)} & 0.0\,\scriptsize{(0/54)} \\
+ollama:qwen2.5-detour:latest & F2 & 22.2\,\scriptsize{(8/36)} & 18.1\,\scriptsize{(13/72)} & 29.6\,\scriptsize{(16/54)} & 27.8\,\scriptsize{(15/54)} & 18.5\,\scriptsize{(10/54)} \\
+\bottomrule
+\end{tabular}
+\end{table*}

@@ -1,0 +1,7 @@
+NAME                       ID              SIZE     MODIFIED               
+llama70-detour:latest      94946b526c7e    42 GB    Less than a second ago    
+mistral24-detour:latest    22351593d392    15 GB    1 second ago              
+gptoss20-detour:latest     a1c927e2b35f    13 GB    1 second ago              
+llama3.3:70b               a6eb4748fd29    42 GB    3 minutes ago             
+mistral-small3.2:24b       5a408ab55df5    15 GB    6 minutes ago             
+gpt-oss:20b                f38aa0c53da5    13 GB    7 minutes ago             

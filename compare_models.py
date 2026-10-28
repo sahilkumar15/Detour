@@ -50,6 +50,7 @@ from typing import Any, Callable, Sequence
 #
 # So rows are rehydrated into real Episodes and scored by the one set of
 # definitions in pda/metrics.py. There is now no second place to drift.
+from pda.subsets import load_rows
 from pda.metrics import ELIGIBILITY as ELIGIBLE, INDICATOR, METRIC_ORDER
 from pda.runner import Episode
 
@@ -77,9 +78,12 @@ ORDER = METRIC_ORDER
 
 
 def load(path: pathlib.Path) -> tuple[list[dict], dict[str, Any] | None]:
-    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = load_rows(path)
     # Attach the rehydrated Episode once, so every rate is scored by the one
-    # set of metric definitions in pda/metrics.py rather than a copy.
+    # set of metric definitions in pda/metrics.py rather than a copy. This is
+    # why `rate` below is not pda.subsets.rate: it reuses the cached episode
+    # instead of rehydrating on every call, and it returns a fraction because
+    # `pct` formats one. Same dispatch, different calling convention.
     for row in rows:
         row["_ep"] = _as_episode(row)
     manifest_path = path.with_suffix(".manifest.json")

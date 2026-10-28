@@ -1,0 +1,10 @@
+model	display_model	feedback	episodes	errors	templates	CTWAR_hits	CTWAR_eligible	CTWAR_clusters	PUAR_hits	PUAR_eligible	PUAR_clusters	SRR_hits	SRR_eligible	SRR_clusters	ESC-alt_hits	ESC-alt_eligible	ESC-alt_clusters	OHR_hits	OHR_eligible	OHR_clusters	RF_hits	RF_eligible	RF_clusters	ESC_hits	ESC_eligible	ESC_clusters	JHR_hits	JHR_eligible	JHR_clusters	UER-gate_hits	UER-gate_eligible	UER-gate_clusters	UER-state_hits	UER-state_eligible	UER-state_clusters	rf_abstentions	budget_exhausted
+ollama:mistral24-detour:latest	Mistral Small 3.2 24B	F0	72	0	8	0	36	4	15	72	8	9	54	6	0	54	6	30	54	6	1	8	2	0	9	1	0	9	1	0	72	8	0	72	8	64	0
+ollama:mistral24-detour:latest	Mistral Small 3.2 24B	F1	72	0	8	0	36	4	3	72	8	9	54	6	0	54	6	42	54	6	1	8	2	0	9	1	0	9	1	0	72	8	0	72	8	64	0
+ollama:mistral24-detour:latest	Mistral Small 3.2 24B	F2	72	0	8	0	36	4	2	72	8	11	54	6	0	54	6	41	54	6	0	8	2	0	9	1	0	9	1	0	72	8	0	72	8	64	0
+ollama:qwen2.5-14b-detour:latest	ollama:qwen2.5-14b-detour:latest	F0	72	0	8	6	36	4	16	72	8	12	54	6	0	54	6	26	54	6	44	72	8	9	9	1	4	9	1	0	72	8	0	72	8	0	0
+ollama:qwen2.5-14b-detour:latest	ollama:qwen2.5-14b-detour:latest	F1	72	0	8	0	36	4	4	72	8	12	54	6	36	54	6	2	54	6	40	72	8	9	9	1	6	9	1	0	72	8	0	72	8	0	0
+ollama:qwen2.5-14b-detour:latest	ollama:qwen2.5-14b-detour:latest	F2	72	0	8	1	36	4	11	72	8	16	54	6	25	54	6	2	54	6	39	72	8	9	9	1	4	9	1	0	72	8	0	72	8	0	0
+ollama:qwen2.5-detour:latest	ollama:qwen2.5-detour:latest	F0	72	0	8	16	36	4	26	72	8	13	54	6	3	54	6	13	54	6	37	68	8	8	9	1	5	9	1	0	72	8	0	72	8	4	1
+ollama:qwen2.5-detour:latest	ollama:qwen2.5-detour:latest	F1	72	0	8	0	36	4	0	72	8	2	54	6	52	54	6	0	54	6	59	71	8	9	9	1	0	9	1	0	72	8	0	72	8	1	0
+ollama:qwen2.5-detour:latest	ollama:qwen2.5-detour:latest	F2	72	0	8	8	36	4	13	72	8	16	54	6	15	54	6	10	54	6	47	70	8	8	9	1	6	9	1	0	72	8	0	72	8	2	1

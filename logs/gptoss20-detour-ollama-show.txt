@@ -1,0 +1,25 @@
+  Model
+    architecture        gpt-oss    
+    parameters          20.9B      
+    context length      131072     
+    embedding length    2880       
+    quantization        MXFP4      
+    requires            0.30.0     
+    template source     harmony    
+
+  Capabilities
+    completion     
+    tools          
+    thinking       
+        levels     low, medium, high    
+        default    medium               
+
+  Parameters
+    num_ctx        8192    
+    temperature    1       
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+    ...                          
+

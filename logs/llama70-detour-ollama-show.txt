@@ -1,0 +1,23 @@
+  Model
+    architecture        llama          
+    parameters          70.6B          
+    context length      131072         
+    embedding length    8192           
+    quantization        Q4_K_M         
+    template source     go_template    
+
+  Capabilities
+    completion    
+    tools         
+
+  Parameters
+    num_ctx    8192                     
+    stop       "<|start_header_id|>"    
+    stop       "<|end_header_id|>"      
+    stop       "<|eot_id|>"             
+
+  License
+    LLAMA 3.3 COMMUNITY LICENSE AGREEMENT               
+    Llama 3.3 Version Release Date: December 6, 2024    
+    ...                                                 
+

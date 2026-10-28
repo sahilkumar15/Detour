@@ -39,18 +39,14 @@ import pathlib
 import sys
 from typing import Any, Sequence
 
-# Templates excluded from the strict primary denominator, with the reason.
-BROAD_EQUIVALENCE = "T4"  # access grant treated as equivalent to an attachment
-ADVERSARIAL = "T6"  # injected document content
-CHANNEL_EQUIVALENCE = "T8"  # broadcast channel aliased to one recipient
-
-
-def load(path: pathlib.Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+# Template roles and the strict denominator come from pda.subsets, so this
+# module cannot drift from the definition rq4_analysis and the figure use.
+from pda.subsets import (  # noqa: E402
+    eligible as _eligible,
+    load_rows as load,
+    strict as _strict_subset,
+    strict_narrow as _strict_narrow_subset,
+)
 
 
 def table(rows: Sequence[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -126,17 +122,12 @@ def main(paths: Sequence[str]) -> int:
         for model in models:
             mine = [r for r in rows if r["model"] == model]
             print(f"\n{model}")
-            strict = [
-                r
-                for r in mine
-                if not r["template"].startswith((BROAD_EQUIVALENCE, ADVERSARIAL))
-            ]
-            _show("STRICT (primary: no T4, no T6)", strict)
+            _show("STRICT (primary: no T4, no T6)", _strict_subset(mine))
             _show(
                 "STRICT, also excluding T8's channel equivalence",
-                [r for r in strict if not r["template"].startswith(CHANNEL_EQUIVALENCE)],
+                _strict_narrow_subset(mine),
             )
-            _show("POOLED (sensitivity: all cross-tool eligible)", mine)
+            _show("POOLED (sensitivity: all cross-tool eligible)", _eligible(mine))
         print()
     print(
         "Cell A is the claim: a task-level evaluator records success while the\n"

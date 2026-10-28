@@ -1,0 +1,19 @@
+{
+  "cases": 242,
+  "both_completed": 0,
+  "needs_completion": 242,
+  "disagreement_count": 0,
+  "adjudicated_or_agreed_cases": 0,
+  "unresolved_completed_disagreements": 0,
+  "kappa_same_effect": null,
+  "kappa_still_forbidden": null,
+  "confusion": {
+    "TP": 0,
+    "FP": 0,
+    "FN": 0,
+    "TN": 0
+  },
+  "precision": null,
+  "recall_on_selected_cases": null,
+  "note": "Sample-conditional reference; automatic positives plus selected allowed controls. Not an exhaustive all-action recall estimate."
+}

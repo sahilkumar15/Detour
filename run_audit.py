@@ -285,7 +285,10 @@ def make_agent(
         base_url, key_env = PROVIDERS[kind]
         _require_key(key_env, spec)
         key_env = _resolve_key_env(key_env)
-        _check_model(name, kind, base_url, key_env)
+        if key_env:
+            _check_model(name, kind, base_url, key_env)
+        else:
+            _preflight_local(name, kind, base_url)
         return LLMAgent(
             name=f"{kind}:{name}",
             model=name,
@@ -337,6 +340,42 @@ def _available_models(base_url: str, key_env: str) -> frozenset[str] | None:
         ids = None  # provider does not implement it, or the network is down
     _MODEL_LIST_CACHE[base_url] = ids
     return ids
+
+
+def _preflight_local(model: str, provider: str, base_url: str) -> None:
+    """Fail before the first episode when a keyless local server is unusable.
+
+    `_check_model` cannot cover these providers: it lists models with an API
+    key, and a local server has none, so for Ollama the check silently did
+    nothing. A stopped server then surfaced as `APIConnectionError` on every
+    episode, each one skipped, and the run ended having measured nothing.
+    Two different faults look identical from there and need different fixes:
+    the server is not running, or it is running without this model.
+    """
+    import json as _json
+    import urllib.request
+
+    url = base_url.rstrip("/") + "/models"
+    try:
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            listed = {m.get("id", "") for m in _json.load(resp).get("data", [])}
+    except Exception as exc:
+        raise SystemExit(
+            f"Cannot reach the {provider} server at {base_url} "
+            f"({type(exc).__name__}).\n"
+            f"Nothing was run. Start it, then check it answers:\n"
+            f"    ollama serve            (or open the Ollama app)\n"
+            f"    ollama list\n"
+            f"A port other than 11434 needs the matching entry in PROVIDERS."
+        )
+    # `ollama list` prints `name:latest`; an id given without a tag means it.
+    if model in listed or f"{model}:latest" in listed:
+        return
+    raise SystemExit(
+        f"The {provider} server is up but has no model {model!r}.\n"
+        f"It has: {', '.join(sorted(listed)) or '(nothing)'}.\n"
+        f"Create it first, e.g.  ollama create {model.split(':')[0]} -f Modelfile.<name>"
+    )
 
 
 def _check_model(model: str, provider: str, base_url: str, key_env: str) -> None:
@@ -588,10 +627,12 @@ def run_clean(
     failures = 0
     failure_kinds: dict[str, int] = {}
     aborted = False
+    conn_streak = 0
 
     for agent_spec in agent_specs:
         if aborted:
             break
+        conn_streak = 0
         agent = make_agent(agent_spec, max_tokens, clean=True, rpm=rpm, tpm=tpm)
         for rep in range(reps):
             if aborted:
@@ -649,11 +690,15 @@ def run_clean(
                         f"  SKIPPED {task.task_id} rep{rep}: {kind}: {errored}",
                         file=sys.stderr,
                     )
-                    if _is_fatal(errored):
+                    # Three connection failures in a row is a dead server, not
+                    # a blip; carrying on would skip every remaining episode.
+                    conn_streak = conn_streak + 1 if kind == "APIConnectionError" else 0
+                    if _is_fatal(errored) or conn_streak >= 3:
                         print("\n  fatal error -- stopping the clean arm.", file=sys.stderr)
                         aborted = True
                         break
                     continue
+                conn_streak = 0
 
                 reached = bool(task.done(sandbox))
                 rows.append(
@@ -993,7 +1038,7 @@ def main() -> int:
     parser.add_argument("--agents", default="scripted:workaround")
     parser.add_argument("--conditions", default="F0,F1,F2")
     parser.add_argument("--reps", type=int, default=1)
-    parser.add_argument("--max-steps", type=int, default=6)
+    parser.add_argument("--max-steps", type=int, default=10)
     parser.add_argument("--retries", type=int, default=4, help="retries per episode on transient errors")
     parser.add_argument(
         "--max-tokens",

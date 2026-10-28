@@ -63,6 +63,10 @@ _CODE_FILES = (
     "runner.py",
     "normalize.py",
     "sandbox.py",
+    # The strict primary denominator lives here. A change to it changes the
+    # paper's headline rate without touching gate or metric semantics, so it
+    # belongs under the code digest even though no digest above moves.
+    "subsets.py",
 )
 
 
@@ -106,6 +110,7 @@ def _scenario_record(spec: Any) -> dict[str, Any]:
     return {
         "recovery": _recovery_probe(spec),
         "preload": _preload_probe(spec, sandbox),
+        "observation": _observation_probe(spec, sandbox),
         "task_id": spec.task_id,
         "template": spec.template,
         "op_class": spec.op_class,
@@ -121,6 +126,29 @@ def _scenario_record(spec: Any) -> dict[str, Any]:
         "rules": rules,
         "files": files,
     }
+
+
+def _observation_probe(spec: Any, sandbox: Any) -> str:
+    """Hash the prompt the agent actually receives.
+
+    Every other field here describes the scenario's DATA. The prompt is
+    assembled by `runner._observation` from that data plus text the runner
+    owns -- the drive listing, the principal directory, the channel list --
+    so a change to what the agent is told moved none of the other fields and
+    the dataset digest stayed put. That is the same hole `_recovery_probe`
+    and `_preload_probe` exist to close, and adding the principal directory
+    to the prompt is exactly the kind of change that must not slip through:
+    it altered the measured rates without altering any scenario datum.
+
+    Probed rather than stored so the digest moves when the rendering moves,
+    and the denial text is held fixed so this captures the prompt rather
+    than the feedback condition, which is an experimental factor and not
+    part of the dataset.
+    """
+    from .runner import _observation
+
+    rendered = _observation(spec, sandbox, denial="<frozen-denial-probe>")
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
 
 
 def _preload_probe(spec: Any, sandbox: Any) -> list[str]:
@@ -271,8 +299,47 @@ def metric_fingerprint() -> dict[str, Any]:
         "table": table,
         "labels": labels,
         "reference_status": _reference_status_probe(),
+        "equivalence": _equivalence_probe(),
     }
     return {"digest": _digest(payload), "metrics": list(METRIC_ORDER)}
+
+
+def _equivalence_probe() -> list[str]:
+    """Probe the principal resolution that CTWAR's equivalence test rests on.
+
+    CTWAR counts a later proposal only when its effect tuple matches the
+    denied one, and the tuple's recipient slot comes from
+    `EffectContext.principal`. A change there changes what the primary metric
+    counts -- local-part identity at the internal domain moved CTWAR by
+    10/162 episodes on one model and 20/162 on the other -- while every
+    probe above kept returning the same answers, because they exercise
+    eligibility and indicators over synthetic episodes and never touch the
+    oracle. Resolving a fixed set of surface identifiers closes that: the
+    metric digest now moves when the equivalence semantics move.
+    """
+    from .scenarios import build_suite
+
+    ctx = build_suite()[0].ctx
+    surfaces = (
+        "bob",
+        "bob@partner-labs.com",
+        "bob@acme-corp.com",
+        "rchen",
+        "r.chen@outside-consultancy.net",
+        "rchen@acme-corp.com",
+        "dana",
+        "dana@acme-corp.com",
+        "someone-new@acme-corp.com",
+        "stranger@elsewhere.example",
+        "#partners-open",
+        "#general",
+        "",
+    )
+    out: list[str] = []
+    for surface in surfaces:
+        canonical = ctx.principal(surface)
+        out.append(f"{surface}->{canonical}:{ctx.disclosure_qualifier(canonical)}")
+    return out
 
 
 def _reference_status_probe() -> list[str]:

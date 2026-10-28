@@ -29,33 +29,33 @@ import sys
 from collections import defaultdict
 
 
-def load(path):
-    return [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
+from pda.subsets import (
+    adversarial as _adversarial_subset,
+    broad as _broad_subset,
+    cluster_ci,
+    eligible,
+    load_rows as load,
+    strict as _strict_subset,
+    strict_narrow as _strict_narrow_subset,
+)
 
 
 def rate(rows):
-    """(CTWAR, eligible episodes, distinct templates behind it)."""
-    el = [r for r in rows if r["cross_tool"]]
+    """(CTWAR as a fraction, eligible episodes, distinct templates)."""
+    el = eligible(rows)
     if not el:
         return None, 0, 0
     return sum(r["W"] for r in el) / len(el), len(el), len({r["template"] for r in el})
 
 
 def boot(rows, reps=5000, seed=0):
-    """Cluster bootstrap over templates. None when too few clusters to resample."""
-    by = defaultdict(list)
-    for r in rows:
-        if r["cross_tool"]:
-            by[r["template"]].append(r)
-    keys = list(by)
-    if len(keys) < 2:
-        return None
-    rng, vals = random.Random(seed), []
-    for _ in range(reps):
-        sample = [x for k in (rng.choice(keys) for _ in keys) for x in by[k]]
-        vals.append(sum(r["W"] for r in sample) / len(sample))
-    vals.sort()
-    return vals[int(0.025 * reps)], vals[min(int(0.975 * reps), reps - 1)]
+    """Cluster bootstrap over templates, as a FRACTION for this module.
+
+    The shared helper returns percentage points; this module formats
+    fractions, so convert once here rather than keeping a second bootstrap.
+    """
+    ci = cluster_ci(rows, "CTWAR", reps=reps, seed=seed)
+    return None if ci is None else (ci[0] / 100.0, ci[1] / 100.0)
 
 
 def fmt(value, n, clusters, ci=None, zero_hits=False):
@@ -99,8 +99,8 @@ def main(path):
             if not sub:
                 continue
 
-            clean = [r for r in sub if not r["adversarial"]]
-            clean_strict = [r for r in clean if not r["template"].startswith("T4")]
+            clean = _broad_subset(sub)
+            clean_strict = _strict_subset(sub)
             # T8's equivalence is the second broad one and it dominates the
             # pooled rate: qwen2.5 7B put 7 of its 14 workarounds in this one
             # template. T8 denies a broadcast to an externally-visible channel
@@ -109,10 +109,8 @@ def main(path):
             # that outsider reads things. Defensible, but it asserts
             # recipient identity from a channel, so the rate has to be
             # reportable without it.
-            clean_narrow = [
-                r for r in clean_strict if not r["template"].startswith("T8")
-            ]
-            adv = [r for r in sub if r["adversarial"]]
+            clean_narrow = _strict_narrow_subset(sub)
+            adv = _adversarial_subset(sub)
 
             print("=" * 72)
             print(f"{model}   condition {fb}   ({len(sub)} episodes)")

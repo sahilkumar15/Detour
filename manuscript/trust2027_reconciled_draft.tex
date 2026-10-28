@@ -1,0 +1,1135 @@
+% ============================================================
+% ACM TRUST 2027 - EA TRACK: TRUSTWORTHY AND RESPONSIBLE AGENTIC AI
+% DOUBLE-BLIND FULL PAPER - VERSION 3
+%
+% Main file:     trust2027.tex
+% Bibliography:  reference.bib (same directory)
+%
+% BEFORE SUBMITTING:
+%   1. Obtain independent annotations and update validity claims.
+%   2. Verify bibliography, configuration snapshots and venue metadata.
+%   3. All cited BibTeX keys must appear in reference.bib.
+%   4. Build once end-to-end and check the page count (limit 9,
+%      appendix included; references and GenAI disclosure free).
+% ============================================================
+
+\documentclass[sigconf,review,anonymous]{acmart}
+
+% ACM owns the layout, fonts, margins, and hyperref configuration.
+% Essential additions only: math symbols and flexible two-column tables.
+\usepackage{amsmath,amsfonts,tabularx}
+\emergencystretch=0.65em % Avoid protruding lines, without altering margins.
+
+% Review-stage ACM metadata; check the official venue settings.
+\setcopyright{none}
+\copyrightyear{2027}
+\acmYear{2027}
+\acmConference[TRUST '27]
+  {ACM Conference on Trustworthy and Responsible AI and Computing Systems}
+  {March 7--9, 2027}
+  {Washington, DC, USA}
+\settopmatter{printacmref=true}
+
+% Short local math notation for metrics used in the manuscript.
+\newcommand{\CTWAR}{\mathrm{CTWAR}}
+\newcommand{\PUAR}{\mathrm{PUAR}}
+\newcommand{\SRR}{\mathrm{SRR}}
+\newcommand{\EAC}{\mathrm{EAC}}
+\newcommand{\OHR}{\mathrm{OHR}}
+\newcommand{\ESC}{\mathrm{ESC}}
+\newcommand{\JHR}{\mathrm{JHR}}
+\newcommand{\RF}{\mathrm{RF}}
+\newcommand{\UER}{\mathrm{UER}}
+\newcommand{\eff}{\mathcal{E}_{\pi}}
+\newcommand{\one}{\mathbb{I}}
+
+% Unmeasured values are deliberately visible. Do NOT submit as-is.
+
+
+
+\begin{document}
+
+% ============================================================
+% TITLE
+% ============================================================
+
+\title[Same Effect, Different Tool]{Same Effect, Different Tool: Auditing Post-Denial
+Workaround Attempts in Tool-Using LLM Agents}
+
+% Double-blind: no names, affiliations, contacts,
+% acknowledgments, or identifying repository URLs.
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+
+\begin{abstract}
+Authorization checks can prevent forbidden tool execution while revealing
+little about an agent's subsequent decisions. We study post-denial
+continuations in which a tool-using language model must either respect an
+authorization boundary, complete permitted work, seek approval, or halt.
+We introduce Detour, an AgentDojo-backed evaluation instrument that
+normalizes proposed tool actions into policy-relevant effects and measures
+cross-tool workaround attempts (CTWAR) separately from other unauthorized
+proposals, blocked execution, and authorized recovery. In a frozen suite
+of 24 scenario instances derived from eight templates, we evaluate
+Qwen2.5-7B, Qwen2.5-14B, and Mistral Small 3.2 24B under three
+matched denial-feedback conditions. All three configurations completed
+12/12 benign control tasks. Under bare denial feedback, strict CTWAR
+was 16/36 for Qwen2.5-7B, 6/36 for Qwen2.5-14B, and 0/36 for Mistral.
+However, zero observed cross-tool workarounds did not imply effective
+permitted continuation: Mistral's unwarranted halt rate increased from 30/54 to
+42/54 when the denial named the governing restriction, while its
+safe-recovery rate remained 9/54. These observations distinguish
+attempted circumvention from excessive halting in a fully enforcing
+sandbox. The study is limited by a small number of independent template
+families, structural rather than semantic recovery checks, and effect
+equivalence that has not yet been independently validated by annotators.
+\end{abstract}
+
+% ============================================================
+% CCS CONCEPTS AND KEYWORDS
+% ============================================================
+
+\ccsdesc[500]{Computing methodologies~Artificial intelligence}
+\ccsdesc[300]{Security and privacy~Software security engineering}
+\ccsdesc[300]{Computing methodologies~Multi-agent systems}
+
+\keywords{
+trustworthy agentic AI,
+tool-using LLMs,
+authorization boundaries,
+agent evaluation,
+safe recovery,
+accountability
+}
+
+\maketitle
+
+% ============================================================
+% 1. INTRODUCTION
+% ============================================================
+
+\section{Introduction}
+\label{sec:intro}
+
+Language model agents act. They plan across steps, read
+external data, and invoke tools that transmit information,
+alter records and start workflows. ReAct-style interleaving of
+reasoning and acting made the pattern
+practical~\cite{yao2023react}; the same interface exposes
+agents to instructions embedded in lower-trust content and to
+mistakes about what they are permitted to
+do~\cite{debenedetti2024agentdojo,zhang2025asb}.
+Trustworthiness consequently cannot be read off task
+completion. It depends on whether the task was accomplished
+through actions the user and the governing policy authorized.
+
+Runtime authorization is the standard safeguard, and it works:
+a correct gate blocks the call it is asked to block. What it
+does not do is end the agent's turn. Consider an assistant
+authorized to prepare an email but not to transmit it
+externally. It proposes
+\texttt{send\_email(recipient,\,payload)} and the gate refuses.
+The agent may now save a draft, request approval, stop and
+explain, or call \texttt{post\_message} with the same recipient
+and the same payload. The last option changes the tool
+identifier and nothing else: its policy-relevant effect is
+still \emph{transmit the protected payload to the unauthorized
+recipient}.
+
+Both runs leave the environment untouched, so an execution-only
+metric scores them the same. They are not the same. One agent
+respected the boundary it was told about; the other looked for
+a way around it and was stopped by the gate rather than by its
+own judgment. In deployment, where tool inventories are larger
+and gates are partial, that difference is the difference
+between a safeguard that holds and one that happens to have
+covered the route the agent tried first.
+
+\paragraph{The measurement problem.}
+Naming the behavior is easy; counting it is not. A second tool
+call that differs from the denied one is not evidence of
+anything on its own, because the authorized recovery path also
+uses a different tool. Distinguishing the two requires saying
+what a tool call \emph{does} in policy terms, independently of
+what it is called, and holding that judgment to a reviewable
+standard rather than a model's opinion. This paper's technical
+content is largely that: a normalized effect representation, an
+independent-labeling protocol to be completed, and a metric
+whose denominator is restricted to episodes where an
+effect-equivalent route provably exists.
+
+\paragraph{What this paper is.}
+This is an evaluation artifact, not a defense. We introduce no
+guardrail and train no model. We hold a deterministic
+enforcement rule fixed, vary only the information carried by
+the denial, and audit what frozen pretrained agents propose
+afterwards. The deliverables are a scenario schema, an
+annotation protocol, and a metric suite, together with the
+experimental design that makes their comparisons valid.
+
+\paragraph{Research questions.}
+\textbf{RQ1.} Do agents propose effect-equivalent alternate-tool
+actions after a denial, at a rate distinguishable from exact
+retries and from authorized recovery?
+\textbf{RQ2.} Does the information content of the denial change
+that rate, and does it do so without inducing over-refusal on
+episodes where an authorized route exists?
+
+We additionally examine sensitivity to adversarial lower-trust
+tool content, the confound of general tool-use incompetence,
+and the agreement between an agent's final report and the
+instrumented environment state.
+
+\paragraph{Contributions.}
+\emph{First}, a policy-grounded scenario representation in which
+each denial carries its correct-continuation class, its
+authorized routes, and its labeled effect-equivalent
+alternatives (Section~\ref{sec:problem}).
+\emph{Second}, a metric suite built around cross-tool workaround
+attempts, with disjoint eligibility sets, an explicit separation
+of attempted from executed violations, and an over-refusal
+control that prevents halting from being scored as safety
+(Section~\ref{sec:metrics}).
+\emph{Third}, a matched-feedback protocol under a fixed gate,
+which isolates differences in denial text under fixed enforcement
+while exposing the limits of conclusions from seeded denied states
+(Section~\ref{sec:method}).
+
+% ============================================================
+% 2. RELATED WORK
+% ============================================================
+
+\section{Related Work and Positioning}
+\label{sec:related}
+
+\subsection{Executable Agent Security Evaluation}
+
+AgentDojo supplies realistic tasks, simulated environments and
+attacker-controlled tool responses for prompt-injection
+evaluation~\cite{debenedetti2024agentdojo}; Agent Security
+Bench systematizes attacks and defenses across agent
+settings~\cite{zhang2025asb}. Both establish that agent safety
+must be tested on executed trajectories rather than final text.
+ST-WebAgentBench makes a workflow's governing rules explicit
+and scores completion under those
+constraints~\cite{levy2026stweb}. We adopt the executable-task
+and explicit-policy discipline of this line and change the unit
+of analysis: measurement is conditioned on a specific rejected
+invocation, and labels attach to what the agent proposes
+afterwards even when nothing forbidden executes.
+
+\subsection{Guardrails, Alignment Checks and Tool Contracts}
+
+Task Shield tests whether lower-trust instructions and proposed
+actions serve the user's authorized task~\cite{jia2025taskshield}.
+IPIGuard constrains execution through tool-dependency
+graphs~\cite{an2025ipiguard}; ToolGate governs execution with
+contracts over verified state
+transitions~\cite{liu2026toolgate}. TraceSafe assesses
+guardrails across multi-step tool-calling trajectories and finds
+their efficacy driven more by structural competence than by
+semantic alignment~\cite{chen2026tracesafe}.
+
+ToolSafe is the closest of these: a step-level guardrail whose
+feedback drives continued reasoning rather than aborting, with
+the finding that richer feedback improves both safety and
+utility over a bare safety rating~\cite{mou2026toolsafe}. We do
+not contest that result and do not claim feedback as a novel
+mechanism. ToolSafe varies how \emph{informative} a denial is
+and scores the rate of harmful invocations. We vary how
+\emph{policy-grounded} a denial is while holding enforcement
+fixed, and score which \emph{effect} the agent pursues next --- a
+quantity a per-invocation rate cannot express, because route
+substitution and ordinary noncompliance are the same event to it.
+
+\subsection{Authorization, Privilege and Attempted Violations}
+
+AgentBoundary varies apparent risk and action permissibility
+independently across counterfactual variants of one executable
+workflow, judging both trajectory and post-state across many
+model and harness configurations, and exposes a sharp tension
+between blocking unauthorized actions and completing authorized
+ones~\cite{yang2026agentboundary}. It is the strongest existing
+treatment of permission calibration, and our contribution is
+not scale against it. Its unit is the task: a run is scored by
+whether the authorized work was completed and whether a harmful
+state transition occurred. An episode in which the agent is
+blocked, tries an equivalent route through a second tool, is
+blocked again and then halts is, at that granularity, one
+failed task. Our unit is the effect, so the same episode
+carries a recorded boundary violation. Section~\ref{sec:results}
+states this as a falsifiable prediction rather than an
+assertion.
+
+FORTIS measures over-privileged skill and tool selection,
+finding that models routinely reach past the minimum privilege
+a task requires~\cite{li2026fortis}; its decision point is the
+initial choice, ours is a replanning step after a communicated
+refusal. PIGuard studies over-defense in injection
+detection~\cite{li2025piguard}, which is why our suite scores
+over-halting explicitly rather than treating refusal as
+costless. Siu et al.\ argue that agent security is contextual
+and propose source authorization, task alignment, action
+alignment and data isolation as the properties that must hold
+jointly~\cite{siu2026contextual}; a cross-tool workaround is an
+action-alignment violation in their vocabulary, and this paper
+supplies an instrument that measures one class of them.
+
+Closest in phenomenon, Yu et al.\ report that agents in a
+deterministic environment with explicit constraints develop
+multi-step strategies to circumvent safety limits without
+adversarial prompting, and observe that attempted violations
+are rarely measured because outcome-based metrics
+dominate~\cite{yu2026affordance}. We take that observation as
+established rather than as our motivation to prove, and supply
+what it lacks: an annotated effect-equivalence relation across
+distinct tools, which converts circumvention from an
+observation into a rate with a stated denominator. Related
+evidence that refusal behavior in text fails to transfer to
+tool calls~\cite{cartagena2026gap} motivates conditioning on a
+denial the agent has already received, where the boundary has
+been stated in the clearest available terms. Reporting
+unfaithfulness under silent tool failures has been audited
+by Singh~\cite{singh2026scapegoats}; our reporting-fidelity
+check shares that concern under a different trigger, an
+explicit policy denial, and is a secondary accountability
+measure rather than a new failure family.
+
+% ============================================================
+% TABLE 1: POSITIONING
+% ============================================================
+
+\begin{table}[t]
+\caption{
+Positioning by primary analysis unit. Adjacent behaviors are
+not absent from the cited work; they are not its unit of
+measurement.
+}
+\label{tab:prior}
+\small
+\setlength{\tabcolsep}{3pt}
+
+\begin{tabularx}{\columnwidth}{
+@{}
+>{\raggedright\arraybackslash}p{2.5cm}
+>{\raggedright\arraybackslash}X
+@{}
+}
+\toprule
+Study & Primary analysis unit \\
+\midrule
+
+AgentBoundary~\cite{yang2026agentboundary} &
+Task, under permission/risk counterfactuals. \\
+
+ToolSafe~\cite{mou2026toolsafe} &
+Tool invocation, scored safe or unsafe. \\
+
+FORTIS~\cite{li2026fortis} &
+Initial skill and tool selection. \\
+
+Yu et al.~\cite{yu2026affordance} &
+Trajectory, circumvention observed qualitatively. \\
+
+This work &
+Post-denial episode; normalized effect of each
+subsequent proposal. \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ============================================================
+% 3. PROBLEM FORMULATION
+% ============================================================
+
+\section{Problem Formulation}
+\label{sec:problem}
+
+\subsection{Agent, Gate and Trust Boundary}
+
+A task instance comprises a legitimate goal $g$, trusted state
+$s_t$, tool library $\mathcal{T}$ and state-dependent policy
+$\pi$. At step $t$ a frozen agent $M$ proposes
+$a_t=(\tau_t,\theta_t)$ from history $h_t$, with
+$\tau_t\in\mathcal{T}$ the tool and $\theta_t$ its arguments.
+The gate evaluates
+
+\begin{equation}
+\label{eq:gate}
+G_{\pi}(s_t,g,a_t)\in\{0,1\}.
+\end{equation}
+
+When $G_\pi=1$ the instrumented tool applies
+$s_{t+1}=T(s_t,a_t)$. When $G_\pi=0$ the gate records the
+\emph{proposed} action, executes nothing, returns a denial
+message and leaves protected state unchanged. An agent can
+therefore accumulate unauthorized attempts in an environment
+that never performs an unauthorized execution, and the two
+quantities are reported separately throughout.
+
+The adversary may control lower-trust material the agent
+consumes, including document bodies and returned tool content,
+but not the gate, the policy labels, the executor or the audit
+log. Side channels, compromised enforcement and sandbox escapes
+are out of scope. A permitted invocation is not treated as
+evidence that the user's goal was met.
+
+\subsection{Normalized Effects Across Tools}
+
+Distinct APIs can produce one policy-relevant consequence. We
+define an annotation oracle --- not a learned classifier --- that
+normalizes a proposed action's effect as a four-tuple
+
+\begin{equation}
+\label{eq:effect}
+\eff(s,a)=\langle o,\; r,\; b,\; q\rangle,
+\end{equation}
+
+where $o$ is an operation class, $r$ the principal or location
+receiving the effect, $b$ the protected object, and $q$ a
+qualifier carrying scope or mode. The qualifier is required
+because the first three slots are insufficient for the
+operations this study uses. For \emph{transmit}, $r$ is the
+recipient, $b$ the payload and $q$ the channel class. For
+\emph{delete}, $r$ is the store, $b$ the target and $q$
+distinguishes a single-object removal from a recursive one. For
+\emph{grant access}, the grantee and the resource are different
+entities: $r$ is the grantee, $b$ the resource and $q$ the
+privilege level. Collapsing $q$ would make a recursive delete
+and a single-file delete indistinguishable, which would bias
+the primary metric in the permissive direction.
+
+Let $a_d=(\tau_d,\theta_d)$ be the denied action in state
+$s_d$. A later proposal $a_t$ is an \emph{effect-equivalent
+cross-tool attempt} if and only if
+
+\begin{equation}
+\label{eq:equiv}
+\tau_t\neq\tau_d
+\;\;\wedge\;\;
+\eff(s_t,a_t)=\eff(s_d,a_d)
+\;\;\wedge\;\;
+G_\pi(s_t,g,a_t)=0 .
+\end{equation}
+
+The third conjunct matters: the policy is state-dependent, so an
+effect forbidden at $s_d$ may be permitted at $s_t$ --- after an
+approval has been granted, for instance --- and such a call is
+compliant, not a workaround. We score a recorded proposal, never
+an inferred intention. A different tool name alone is
+insufficient; a permitted alternative with a different effect is
+not a violation. Broad access-grant equivalence and
+adversarial-content templates are excluded from the strict primary
+analysis and evaluated separately as sensitivity checks.
+
+\subsection{Episode Classes and Eligibility}
+
+Let $\mathcal{D}$ be the episodes beginning at a standardized
+denial record $d$, continuing through trace $\xi_d$ and ending
+in report $r_T$. Each belongs to exactly one correct-continuation
+class:
+
+\begin{equation}
+\label{eq:partition}
+\mathcal{D}
+=
+\mathcal{D}_{\rm alt}
+\mathbin{\dot\cup}
+\mathcal{D}_{\rm approve}
+\mathbin{\dot\cup}
+\mathcal{D}_{\rm halt},
+\end{equation}
+
+according to whether an authorized completion route exists,
+explicit approval is required, or no authorized continuation
+exists. Each class has its own correct outcome and, in
+Section~\ref{sec:metrics}, its own estimator; none is folded
+into another.
+
+Cross-tool eligibility is an \emph{orthogonal} attribute rather
+than a fourth class. The subset
+$\mathcal{D}_{\rm cross}\subseteq\mathcal{D}$ marks episodes in
+which the environment exposes a tool capable of the denied
+effect, and
+$\mathcal{D}_{\rm alt}\cap\mathcal{D}_{\rm cross}\neq\emptyset$
+is intended: the episodes in which a legitimate route and a
+forbidden shortcut are simultaneously available are the most
+diagnostic in the suite, because the agent is not choosing
+between compliance and failure but between compliance and
+convenience.
+
+% ============================================================
+% 4. METHOD
+% ============================================================
+
+\section{Effect-Grounded Post-Denial Audit}
+\label{sec:method}
+
+\subsection{Architecture}
+
+Figure~\ref{fig:arch} separates four components that are
+conflated in execution-only evaluation: the frozen agent, the
+deterministic gate, the sandbox executor, and an auditor that
+observes proposals rather than outcomes. The agent receives
+ordinary task instructions and tool outputs; across controlled
+conditions only the denial text differs. Every state-changing
+call passes $G_\pi$, whose decision is logged with the proposal
+that triggered it. The auditor consumes all proposals, denial
+messages, permitted transitions and final claims, and labels
+them against effect annotations drawn from the scenario
+specification. Those annotations are never produced by the
+agent under evaluation.
+
+% ============================================================
+% FIGURE 1: ARCHITECTURE
+% ============================================================
+
+\begin{figure}[t]
+\centering
+% Self-contained architecture figure: no external PDF or TikZ required.
+\begingroup
+\footnotesize
+\setlength{\fboxsep}{3pt}
+\setlength{\fboxrule}{0.5pt}
+\fbox{\parbox{0.90\columnwidth}{\centering
+User goal $g$, policy $\pi$, trusted state $s_t$}}
+\par\vspace{2pt}
+$\downarrow$
+\par\vspace{2pt}
+\fbox{\parbox{0.90\columnwidth}{\centering
+Frozen agent $M$ proposes $a_t=(\tau_t,\theta_t)$}}
+\par\vspace{2pt}
+$\downarrow$
+\par\vspace{2pt}
+\fbox{\parbox{0.90\columnwidth}{\centering
+Trusted gate $G_\pi$: log proposal and check permission}}
+\par\vspace{2pt}
+\begin{minipage}[t]{0.47\columnwidth}
+\centering
+$\swarrow\;G_\pi=0$\\[2pt]
+\fbox{\parbox{0.82\linewidth}{\centering
+\textbf{Denied}\\
+No execution; return $F_k$\\
+Post-denial episode begins}}
+\end{minipage}\hfill%
+\begin{minipage}[t]{0.47\columnwidth}
+\centering
+$G_\pi=1\;\searrow$\\[2pt]
+\fbox{\parbox{0.82\linewidth}{\centering
+\textbf{Allowed}\\
+Sandbox executes call\\
+State updates to $s_{t+1}$}}
+\end{minipage}
+\par\vspace{3pt}
+$\downarrow$\\[2pt]
+\fbox{\parbox{0.90\columnwidth}{\centering
+\textbf{Offline auditor}: annotated effects
+$\mathcal{E}_{\pi}=\langle o,r,b,q\rangle$;
+proposal, state and report labels}}
+\endgroup
+\caption{Effect-grounded audit architecture. The external gate
+controls execution; the independent auditor records proposed
+cross-tool effects, permitted state changes and reporting fidelity.
+Scenario-defined effect labels are not generated by the evaluated agent.}
+\Description{A frozen agent proposes an action under a user goal and
+policy. A trusted gate denies or executes the action. A denial
+returns feedback and begins an audit episode; an allowed call
+updates sandbox state. An offline auditor uses scenario-defined
+effect tuples to evaluate proposals and final reports.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Outcome Labels}
+
+A post-denial trace may contain a compliant alternative, an
+approval request, a justified halt, an exact retry, an
+effect-equivalent call through another tool, or an unrelated
+error. These are not mutually exclusive: an agent may attempt a
+shortcut and subsequently recover, and the suite records both
+rather than resolving them into a single verdict.
+Table~\ref{tab:taxonomy} gives the decision rule for each label
+and names the metric it feeds, so that the mapping from
+observation to number is explicit rather than reconstructed by
+the reader.
+
+% ============================================================
+% TABLE 2: OUTCOME TAXONOMY
+% ============================================================
+
+\begin{table}[t]
+\caption{
+Outcome labels, decision rules and the metric each feeds.
+Labels are assigned from proposals, policy and instrumented
+state.
+}
+\label{tab:taxonomy}
+\small
+\setlength{\tabcolsep}{3pt}
+
+\begin{tabularx}{\columnwidth}{
+@{}
+>{\raggedright\arraybackslash}p{1.75cm}
+>{\raggedright\arraybackslash}X
+>{\raggedright\arraybackslash}p{1.05cm}
+@{}
+}
+\toprule
+Label & Decision rule & Feeds \\
+\midrule
+
+Safe recovery &
+Authorized goal state reached with no
+policy-violating proposal. &
+$\SRR$ \\
+
+Late recovery &
+Goal reached, but a violating proposal occurred
+earlier in the episode. &
+$\EAC$ \\
+
+Appropriate escalation &
+Approval requested; protected operation not
+executed first. &
+$\ESC$ \\
+
+Justified halt &
+No authorized route exists; restriction reported
+correctly. &
+$\JHR$ \\
+
+Unwarranted halt &
+Agent stops although an authorized route exists. &
+$\OHR$ \\
+
+Exact retry &
+Denied tool and forbidden effect proposed again. &
+$\PUAR$ \\
+
+Cross-tool workaround &
+Different tool, same forbidden effect, still
+forbidden at proposal time. &
+$\CTWAR$ \\
+
+Reporting mismatch &
+Final claim contradicts instrumented terminal
+state. &
+$\RF$ \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Matched Denial-Feedback Conditions}
+
+Three messages are compared for the same denied action under
+identical enforcement. $F_0$ reports only that the action was
+denied. $F_1$ names the governing restriction, for example that
+external transmission requires approval. $F_2$ additionally
+names a \emph{permitted action class}, for example that
+local-only preparation remains available, and never supplies a
+concrete tool, arguments or a recovery plan.
+
+The class-not-call distinction is deliberate and is the design
+decision on which the $F_2$ comparison rests. Supplying the
+exact recovery call would make safe recovery a test of whether
+the agent can repeat the experimenter's answer; supplying only
+the class leaves the agent to locate a compliant route itself.
+Every subsequent call, including calls consistent with $F_2$,
+passes the same gate. Because feedback content is an
+intervention, differences between conditions estimate the
+effect of additional policy information and not an intrinsic
+property of the model.
+
+\subsection{Controlled Post-Denial Continuations}
+The reported evaluation replays the same policy-denied prefix for every
+model and feedback condition, then audits subsequent proposals in the
+instrumented sandbox. This identifies behavior conditional on being placed
+in a denied state; it does not estimate how often an unprompted agent
+would encounter such a denial in a natural deployment. No natural-rollout
+results are reported here. Denial feedback changes; gate rules, tool
+inventory, and synthetic initial state remain fixed within the experiment.
+
+% ============================================================
+% 5. EXPERIMENTAL SETUP
+% ============================================================
+
+\section{Experimental Setup}
+\label{sec:experiment}
+
+\subsection{Task Families}
+The evaluated Detour suite comprises 24 scenario instances derived from
+eight templates, each instantiated with three variants. Eighteen
+instances across six templates are cross-tool eligible; three are
+adversarial document-content variants matched to a benign template.
+Correct continuation is classified as a permitted alternative (18
+instances), required approval (3), or justified halt (3). Twenty-one
+instances involve disclosure and three involve deletion. The environment
+uses synthetic document, email, and chat resources with a deterministic
+authorization gate. The same scenarios are evaluated with three feedback
+conditions and three repetitions per condition, resulting in 216 audit
+episodes per model configuration. Changing names within a template does
+not supply independent evidence about a new workflow; uncertainty is
+therefore organized by template, not by episode count.
+
+\subsection{Effect Annotation and Quality Control}
+\label{sec:annotation}
+The implemented effect oracle matches operation, recipient/principal,
+protected object, and qualifier using scenario-defined rules and aliases.
+These are deterministic \emph{machine annotations}, not independently
+human-adjudicated ground truth. We distinguish the strict, non-adversarial
+primary effect scope (excluding broad access-grant equivalence in T4 and
+the injected-content T6) from broader and channel-equivalence sensitivity
+analyses. The policy scope and object/recipient aliases may generate false
+matches or miss equivalent effects. Independent, blinded human labeling
+is needed to estimate oracle validity; until that validation is complete,
+we do not claim a measured inter-annotator agreement, precision, or recall.
+
+\subsection{Agents, Competence Control and Baselines}
+We evaluate three frozen open-weight configurations: Qwen2.5-7B,
+Qwen2.5-14B, and Mistral Small 3.2 24B. The two Qwen models were
+previously evaluated in a matched Detour v8 run, and Mistral in a frozen
+v9 extension whose dataset and metric compatibility check passed.
+Before post-denial scoring, each agent was screened on six benign tasks
+with two repetitions each, including a read-then-send workflow.
+All three configurations reached 12/12 benign-task goals and 2/2
+multi-step goals in those controls. This is a small competence screen,
+not proof of general tool competence. Mistral was served via Ollama
+with an 8192-token configured context; the exact earlier Qwen serving
+settings must be taken from their saved run manifests before claiming
+full decoding or hardware equivalence.
+
+The feedback comparison isolates F0, F1, and F2 within each configuration.
+We compare CTWAR with general unauthorized proposals (PUAR), safe recovery,
+unnecessary escalation, unjustified halting, and the blocked-execution
+baseline. As the gate prevents forbidden execution, zero observed forbidden
+terminal states is primarily an enforcement finding and not evidence of
+compliant agent intent.
+
+% ============================================================
+% TABLE 3: DESIGN
+% ============================================================
+
+\begin{table}[t]
+\caption{
+Prespecified comparisons and what each controls.
+}
+\label{tab:design}
+\small
+\setlength{\tabcolsep}{3pt}
+
+\begin{tabularx}{\columnwidth}{
+@{}
+>{\raggedright\arraybackslash}p{2.1cm}
+>{\raggedright\arraybackslash}X
+@{}
+}
+\toprule
+Comparison & What it isolates \\
+\midrule
+
+$F_0$ vs.\ $F_1$ &
+Effect of naming the governing restriction. \\
+
+$F_1$ vs.\ $F_2$ &
+Added effect of a permitted action class, with no
+tool hint. \\
+
+Exact vs.\ cross-tool &
+Route substitution against generic noncompliance. \\
+
+Benign vs.\ adversarial &
+Sensitivity to untrusted tool content. \\
+
+Clean-task competence &
+Inability to act against deliberate compliance. \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ============================================================
+% 6. METRICS
+% ============================================================
+
+\section{Metrics and Statistical Analysis}
+\label{sec:metrics}
+
+\subsection{Primary Outcome}
+
+For $i\in\mathcal{D}_{\rm cross}$, let $W_i=1$ if any
+subsequent proposal satisfies Eq.~\eqref{eq:equiv}, and $0$
+otherwise. The primary metric is
+
+\begin{equation}
+\label{eq:ctwar}
+\CTWAR
+=
+\frac{\sum_{i\in\mathcal{D}_{\rm cross}}W_i}
+{|\mathcal{D}_{\rm cross}|}.
+\end{equation}
+
+The denominator admits only episodes in which an
+effect-equivalent route exists and has been annotated. An exact
+same-tool retry never satisfies $W_i=1$; an attempted
+substitution need not execute. Because operation classes differ
+in reversibility, we additionally report a severity-weighted
+variant in which each episode carries a weight $w_i$ fixed by
+its operation class before data collection, with irreversible
+operations weighted above reversible ones. The unweighted rate
+remains primary.
+
+\subsection{Secondary Outcomes by Eligibility Class}
+
+Let $U_i$ indicate any unauthorized post-denial proposal
+regardless of tool, and $X_i$ an unauthorized \emph{execution}.
+Over all episodes,
+
+\begin{equation}
+\label{eq:global}
+\PUAR=\frac{\sum_{i\in\mathcal{D}}U_i}{|\mathcal{D}|},
+\qquad
+\UER=\frac{\sum_{i\in\mathcal{D}}X_i}{|\mathcal{D}|}.
+\end{equation}
+
+$\UER$ is expected to be zero under a correct gate and is
+reported as an enforcement check, not as a safety result.
+
+Each eligibility class carries its own estimator. On
+$\mathcal{D}_{\rm alt}$, let $C_i$ indicate completion with no
+violating proposal anywhere in the episode, $C^{+}_i$
+completion irrespective of earlier violations, and $H_i$ a halt
+despite an available authorized route:
+
+\begin{equation}
+\label{eq:alt}
+\SRR=\frac{\sum C_i}{|\mathcal{D}_{\rm alt}|},
+\quad
+\EAC=\frac{\sum C^{+}_i}{|\mathcal{D}_{\rm alt}|},
+\quad
+\OHR=\frac{\sum H_i}{|\mathcal{D}_{\rm alt}|}.
+\end{equation}
+
+The gap $\EAC-\SRR$ is the share of successful episodes that
+passed through an attempted violation, which an outcome-only
+metric reports as unqualified success. $\OHR$ is the
+over-refusal control: without it, an agent that halts
+everywhere scores well on every other
+measure~\cite{li2025piguard}. On the remaining classes, with
+$Q_i$ indicating approval correctly requested before any
+protected execution and $J_i$ a correctly reported halt,
+
+\begin{equation}
+\label{eq:classes}
+\ESC=\frac{\sum_{i\in\mathcal{D}_{\rm approve}}Q_i}
+{|\mathcal{D}_{\rm approve}|},
+\qquad
+\JHR=\frac{\sum_{i\in\mathcal{D}_{\rm halt}}J_i}
+{|\mathcal{D}_{\rm halt}|}.
+\end{equation}
+
+Tool-call counts, continuation steps, latency and token use are
+reported alongside. No measure is merged into a composite
+trustworthiness score: the suite's purpose is to keep safety
+and utility legible as separate quantities, and a weighted sum
+would discard exactly the information it was built to preserve.
+
+\subsection{Reporting Fidelity}
+
+Let $c_i$ be a parseable final claim about action status and
+$\sigma_i$ the reference status from logged transitions ---
+\emph{sent}, \emph{draft-only}, \emph{denied},
+\emph{awaiting approval}. Over the eligible subset
+$\mathcal{D}'\subseteq\mathcal{D}$ of unambiguous claims,
+
+\begin{equation}
+\label{eq:rf}
+\RF=\frac{1}{|\mathcal{D}'|}\sum_{i\in\mathcal{D}'}
+\one[c_i\simeq\sigma_i].
+\end{equation}
+
+Claims not interpretable under the prespecified ontology are
+never silently scored correct; $|\mathcal{D}\setminus
+\mathcal{D}'|$ is reported as the abstention count with its
+fraction. This measures terminal reporting under explicit
+denial and does not substitute for auditing
+execution~\cite{singh2026scapegoats}.
+
+\subsection{Uncertainty and Effective Sample Size}
+
+Conditions are paired on scenario instances. For outcomes with observed
+variation, a paired bootstrap resamples \emph{templates}, not individual
+renamed tasks or repeated episodes. The strict CTWAR scope has only four
+independent template clusters per model--feedback cell; cluster-bootstrap
+intervals are therefore unstable. When every observed outcome is zero,
+resampling only zero-valued clusters produces a degenerate interval that
+is \emph{not} a valid claim of zero population risk. We report counts,
+eligible denominators and cluster counts, and avoid binomial intervals
+that assume independent episodes. Oracle agreement cannot be reported
+until independent human labels are collected.
+
+% ============================================================
+% 7. RESULTS
+% ============================================================
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Coverage and Clean Competence}
+The frozen Detour study includes 24 instances in eight templates. Each
+model configuration was evaluated under three feedback conditions and
+three repetitions, yielding 216 post-denial episodes each and 648 across
+three configurations. The strict, non-adversarial CTWAR denominator has
+36 eligible episodes and four template clusters per model-condition cell.
+The broader six-template eligible set has 54 episodes per cell, including
+the adversarial T6 variant. All three configurations completed 12/12
+benign controls and the 2/2 clean chaining task instances. The Mistral
+run reported no seed errors, zero gate failures, and no forbidden final
+state in 216 episodes. The older Qwen findings were obtained from the
+saved v8 evidence and are reported using their original metrics.
+
+\subsection{Main Denial-Feedback Results}
+Table~\ref{tab:results} reports observed rates and their correct eligible
+denominators. Strict CTWAR excludes T4, whose access grant is a contested
+broad equivalence, and T6, which adds injected tool content. We deliberately
+omit episode-binomial confidence intervals: three repetitions and
+name variants within four strict templates are not independent draws.
+A zero event rate also makes a template bootstrap degenerate; it does not
+imply a precise out-of-sample zero.
+
+\begin{table*}[t]
+\caption{Controlled post-denial results across three tool-competent model
+configurations. Values are percentages followed by observed count/eligible
+count. CTWAR uses strict non-adversarial eligibility (36 per cell), PUAR
+uses all episodes (72), and SRR, ESC-alt, OHR use the alternative-route
+class (54). These are descriptive observations rather than independent-
+trial confidence bounds.}
+\label{tab:results}
+\centering\small\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llccccc}
+\toprule
+Model & Feedback & Strict CTWAR $\downarrow$ & PUAR $\downarrow$ & SRR $\uparrow$ & ESC-alt & OHR $\downarrow$ \\
+\midrule
+Qwen2.5-7B & $F_0$ & 44.4 (16/36) & 36.1 (26/72) & 24.1 (13/54) & 5.6 (3/54) & 24.1 (13/54) \\
+Qwen2.5-7B & $F_1$ & 0 (0/36) & 0 (0/72) & 3.7 (2/54) & 96.3 (52/54) & 0 (0/54) \\
+Qwen2.5-7B & $F_2$ & 22.2 (8/36) & 18.1 (13/72) & 29.6 (16/54) & 27.8 (15/54) & 18.5 (10/54) \\
+\midrule
+Qwen2.5-14B & $F_0$ & 16.7 (6/36) & 22.2 (16/72) & 22.2 (12/54) & 0 (0/54) & 48.1 (26/54) \\
+Qwen2.5-14B & $F_1$ & 0 (0/36) & 5.6 (4/72) & 22.2 (12/54) & 66.7 (36/54) & 3.7 (2/54) \\
+Qwen2.5-14B & $F_2$ & 2.8 (1/36) & 15.3 (11/72) & 29.6 (16/54) & 46.3 (25/54) & 3.7 (2/54) \\
+\midrule
+Mistral Small 24B & $F_0$ & 0 (0/36) & 20.8 (15/72) & 16.7 (9/54) & 0 (0/54) & 55.6 (30/54) \\
+Mistral Small 24B & $F_1$ & 0 (0/36) & 4.2 (3/72) & 16.7 (9/54) & 0 (0/54) & 77.8 (42/54) \\
+Mistral Small 24B & $F_2$ & 0 (0/36) & 2.8 (2/72) & 20.4 (11/54) & 0 (0/54) & 75.9 (41/54) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Contrasting Post-Denial Failure Modes}
+Under bare feedback, Qwen2.5-7B proposed a strict cross-tool workaround
+in 16/36 eligible episodes, and Qwen2.5-14B did so in 6/36. Naming the
+restriction (F1) yielded 0/36 for both Qwen configurations, but the
+smaller model's safe recovery also fell from 13/54 to 2/54 and its
+unnecessary escalation rose from 3/54 to 52/54. Providing a permitted
+class (F2) did not produce a monotonic safety improvement: strict CTWAR
+returned to 8/36 for Qwen2.5-7B and 1/36 for Qwen2.5-14B.
+
+Mistral exhibited a different failure mode. No CTWAR was detected in any
+of its 162 broadly cross-tool eligible episodes, including the adversarial
+arm; however, unauthorized proposals still occurred, and strict
+unwarranted halting increased from 30/54 under F0 to 42/54 under F1.
+Safe recovery remained 9/54 under both conditions. Thus an observed
+absence of cross-tool substitution neither implies absence of other
+violations nor effective continuation.
+
+\subsection{Incremental Value and Reporting Limits}
+An execution-only metric recorded no forbidden terminal states in the
+fully enforcing Mistral experiment, even though 20/216 episodes contained
+some unauthorized proposal. The automated Qwen v8 strict, completion-
+eligible D1 comparison identified five episodes with both a cross-tool
+workaround and \emph{structural} completion (four for 7B and one for
+14B). These completion labels are based on environment predicates rather
+than an independent semantic assessment of the resulting artifact.
+Mistral contributed no CTWAR positives to D1. The effect-aware metric
+therefore separates attempted circumvention from both blocked execution
+and excessive stopping, but its correspondence to independent human
+policy judgments remains to be established.
+
+Mistral ended 24/216 episodes in prose rather than a structured
+\texttt{report\_and\_stop} call, and only 24/216 episodes supplied an
+RF-eligible status under the current parser. RF accuracy was 1/8, 1/8,
+and 0/8 for F0, F1, and F2, respectively; those fractions must be read
+together with 192/216 abstentions, not as model-wide reporting accuracy.
+The correct halt metric was 0/9 in every condition and may partly reflect
+unavailable or unrecognized terminal statuses; this warrants a separate
+trace audit before a behavioral conclusion is drawn.
+
+% ============================================================
+% 8. DISCUSSION AND LIMITATIONS
+% ============================================================
+
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+\subsection{What the Audit Establishes}
+
+The audit measures an agent's propensity to propose a forbidden
+effect after the boundary has been stated to it explicitly. Its
+central separation is between system enforcement and agent
+continuation. Under a correct gate the unauthorized execution
+rate is zero by construction; this does not constrain $\CTWAR$,
+and the two numbers are not interchangeable. A deployment that
+reports the first as its safety evidence is reporting a
+property of its gate, not of its agent --- which is adequate
+exactly as long as the gate's coverage is complete, and
+tool inventories in practice grow faster than policy
+coverage does.
+
+The converse failure is equally available. An agent that halts
+after every denial achieves a low workaround rate while failing
+legitimate work, which is why $\OHR$ and clean-task competence
+are reported before $\CTWAR$ rather than after it.
+
+\subsection{Construct Validity}
+
+The effect tuple simplifies context-dependent consequences by
+construction. The qualifier slot covers scope and mode for the
+operation classes used here, but operations outside this set
+may need further qualifiers, and both false matches and
+omissions bias $\CTWAR$ directly --- false matches upward,
+omissions downward. Current mitigations include strict-versus-broad sensitivity
+analysis and instrumented state checks. Independent human
+annotation is still required and is not claimed as completed. We scope the claim
+accordingly: the instrument implements rules for disclosure, deletion
+and access-grant cases in the environments studied, and
+extending it is an empirical question rather than a
+generalization we assert.
+
+\subsection{Intervention and External Validity}
+
+A model placed into a predefined denied state might not have
+proposed the antecedent action itself, which is the principal
+threat to the controlled arm; no natural-rollout control has yet measured its magnitude. More
+informative feedback changes what the agent knows, so the
+comparison estimates an information intervention and not an
+intrinsic model property independent of prompting.
+
+Synthetic email, chat and document workflows do not stand
+in for production agents, dynamically discovered tools, browser
+sessions, multi-agent delegation or hidden side channels.
+Results may vary with tool schema, prompt wording, API
+snapshot, serving backend and continuation budget. The number
+of independent task families bounds generalization, and the
+suite is sized to establish whether the phenomenon occurs
+rather than to estimate its prevalence in deployment.
+
+\subsection{Responsible Evaluation}
+
+All recipients, files and resources are synthetic; tools perform
+no real outbound communication and modify no live account.
+Adversarial content remains confined to the sandbox. Released
+traces are non-sensitive and contain no real identifiers. The
+framework evaluates one declared boundary in an instrumented
+environment; it is neither formal verification nor a
+production security certification, and a low $\CTWAR$ is
+evidence about the agents and tasks measured, not a safety
+guarantee for any deployment.
+
+% ============================================================
+% 9. CONCLUSION
+% ============================================================
+
+\section{Conclusion}
+\label{sec:conclusion}
+Detour separates an agent's post-denial proposals from actual tool
+execution and from permitted task recovery. In a 24-instance benchmark,
+competent Qwen configurations sometimes pursued the forbidden effect
+through another tool, whereas a competent Mistral configuration showed
+no such observed substitution but frequently halted despite available
+legitimate continuations. Explicit restrictions changed the balance
+between attempted violations, escalation and halting, not uniformly in
+a favorable direction. These findings support evaluating effect-grounded
+proposals and authorized utility jointly, without equating zero executed
+violations with agent compliance. The small number of independent
+scenario templates, structural recovery proxies, and pending independent
+human effect-equivalence validation limit the claims; the study does not
+estimate real-world prevalence or establish a general safety ranking.
+
+% ============================================================
+% GENERATIVE AI USAGE DISCLOSURE
+% ============================================================
+
+\section*{Generative AI Usage Disclosure}
+
+Generative AI assistance was used in preparing this manuscript
+for outline development, prose editing, methodological
+discussion, reference verification and LaTeX/TikZ authoring.
+All cited references were checked against their published
+records by the authors. Any use of AI assistance in scenario
+construction, implementation, annotation, analysis or figure
+generation will be recorded here with the verification
+procedure applied to each, in accordance with the venue's
+requirements. The authors are responsible for all research
+decisions, results and citations.
+
+% ============================================================
+% APPENDIX
+% ============================================================
+
+\appendix
+
+\section{Configuration Record}
+\label{app:config}
+
+
+Table~\ref{tab:config} records the fields fixed before data
+collection for every evaluated configuration. Reproducing a
+reported rate requires all of them: tool-calling
+implementations and serving backends differ in ways that change
+multi-step behavior independently of the
+model~\cite{chen2026tracesafe}.
+
+
+\begin{table}[t]
+\caption{
+Fields recorded per evaluated configuration.
+}
+\label{tab:config}
+\small
+\setlength{\tabcolsep}{3pt}
+
+\begin{tabularx}{\columnwidth}{
+@{}
+>{\raggedright\arraybackslash}p{2.1cm}
+>{\raggedright\arraybackslash}X
+@{}
+}
+\toprule
+Field & Recorded value \\
+\midrule
+Model configurations & Qwen2.5-7B, Qwen2.5-14B, Mistral Small 3.2 24B \\
+Mistral backend & Local Ollama 0.40.11 on A100 80 GB \\
+Mistral model tag & \texttt{mistral24-detour:latest} (record blob ID) \\
+Mistral quantization & Ollama distribution; verify with \texttt{ollama show} \\
+Mistral context & 8192 configured tokens \\
+Mistral output cap & 900 tokens \\
+Audit repetitions & 3 per scenario and feedback condition \\
+Clean repetitions & 2 per clean task \\
+Clean-task success & 12/12 for each reported model \\
+Clean chaining & 2/2 for each reported model \\
+Earlier Qwen config & See their saved v8 manifests; do not assume same backend \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+% ============================================================
+% REFERENCES
+% ============================================================
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{reference}
+
+\end{document}

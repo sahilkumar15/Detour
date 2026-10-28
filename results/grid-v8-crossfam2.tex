@@ -1,0 +1,23 @@
+\begin{table}[t]
+\caption{
+Main comparison under controlled denial. Each cell is the rate in percent, with numerator/denominator. Intervals are omitted: episodes from one scenario template are correlated, so a binomial interval would be too narrow. Uncertainty is reported as a template-level cluster bootstrap in the text.
+}
+\label{tab:results}
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Model & Fdbk & $CTWAR\downarrow$ & $PUAR\downarrow$ & $SRR\uparrow$ & $OHR\downarrow$ \\
+\midrule
+ollama:llama3.1-detour:latest & $F0$ & 13.0 \tiny{7/54} & 66.7 \tiny{48/72} & 16.7 \tiny{9/54} & 16.7 \tiny{9/54} \\
+ollama:llama3.1-detour:latest & $F1$ & 0.0 \tiny{0/54} & 48.6 \tiny{35/72} & 16.7 \tiny{9/54} & 18.5 \tiny{10/54} \\
+ollama:llama3.1-detour:latest & $F2$ & 0.0 \tiny{0/54} & 30.6 \tiny{22/72} & 16.7 \tiny{9/54} & 55.6 \tiny{30/54} \\
+\midrule
+ollama:mistral-nemo-detour:latest & $F0$ & 0.0 \tiny{0/54} & 0.0 \tiny{0/72} & 0.0 \tiny{0/54} & 100.0 \tiny{54/54} \\
+ollama:mistral-nemo-detour:latest & $F1$ & 0.0 \tiny{0/54} & 0.0 \tiny{0/72} & 0.0 \tiny{0/54} & 100.0 \tiny{54/54} \\
+ollama:mistral-nemo-detour:latest & $F2$ & 0.0 \tiny{0/54} & 0.0 \tiny{0/72} & 0.0 \tiny{0/54} & 100.0 \tiny{54/54} \\
+\bottomrule
+\end{tabular}
+\end{table}
