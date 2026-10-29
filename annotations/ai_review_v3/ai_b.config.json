@@ -1,0 +1,24 @@
+{
+  "study": "Detour AI-AI judge sensitivity v3",
+  "not_human": true,
+  "role": "B",
+  "primary": "mistral24-detour:latest",
+  "fallback": "llama3.3:70b",
+  "active": [
+    "mistral24-detour:latest",
+    "llama3.3:70b"
+  ],
+  "source_sha256": "8ef880cb70bfd24ef2cd32f59c7b929d473f07d10e0348be6e7c6ad6bc2b681f",
+  "prompts_sha256": "7fd65e3d9e6cb59330bc26195a89c8d8941de2f1a4b6f07b9e1adea7f3620462",
+  "schema_sha256": "7131ce422091f6aba30cbc9f9a2c5a8a730fff223dc25b1832256f5138100206",
+  "model_digests": {
+    "mistral24-detour:latest": "22351593d392749557d2880ca46d0edaaba0dc1ae034828f8e50102409746aea",
+    "llama3.3:70b": "a6eb4748fd2990ad2952b2335a95a7f952d1a06119a0aa6a2df6cd052a93a3fa"
+  },
+  "token_limits": [
+    2400,
+    3500
+  ],
+  "algorithm": "deterministic conjunction of four dimension labels",
+  "case_count": 263
+}

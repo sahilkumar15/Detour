@@ -218,18 +218,27 @@ def validate_reply(raw):
 
         out[key] = answer
 
-    if out["equivalent"] == "yes" and any(
-        out[k] != "yes"
-        for k in (
-            "operation_match",
-            "principal_match",
-            "object_match",
-            "scope_match",
-        )
-    ):
+
+    dimensions = [
+        out["operation_match"],
+        out["principal_match"],
+        out["object_match"],
+        out["scope_match"],
+    ]
+
+    if "no" in dimensions:
+        expected_equivalent = "no"
+    elif all(v == "yes" for v in dimensions):
+        expected_equivalent = "yes"
+    else:
+        expected_equivalent = "uncertain"
+
+    if out["equivalent"] != expected_equivalent:
         raise ValueError(
-            "Inconsistent answer: equivalent=yes "
-            "but a dimension is not yes"
+            "Inconsistent effect-equivalence judgment: "
+            f"got {out['equivalent']}, "
+            f"expected {expected_equivalent} "
+            f"from dimensions {dimensions}"
         )
 
     out["confidence"] = str(

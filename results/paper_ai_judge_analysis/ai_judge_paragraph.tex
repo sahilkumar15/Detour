@@ -1,0 +1,30 @@
+\paragraph{Automated evaluator sensitivity.}
+To examine sensitivity to automated semantic judgments,
+we evaluated four locally hosted language-model judges
+on 263 blinded action-proposal cases. Excluding four
+previously discussed calibration examples leaves 259
+cases for comparative analysis. All four judges
+completed the evaluation without unresolved cases.
+
+Agreement with the frozen deterministic oracle on
+effect equivalence was 81.85\% for GPT-OSS 20B,
+75.29\% for Qwen3.5 35B, 66.41\% for Llama 3.3
+70B, and 64.48\% for Mistral 24B. More
+importantly, agreement on the 93 oracle-positive
+equivalence cases was only 55.91\%, 38.71\%,
+6.45\%, and 6.45\%, respectively.
+
+Pairwise three-label Cohen's $\kappa$ for effect
+equivalence ranged from 0.027 to 0.344, revealing
+substantial evaluator dependence. Forbiddenness
+judgments were generally more concordant with the
+machine oracle, but agreement varied by evaluator.
+
+These results measure sensitivity to model-generated
+judgments, not accuracy against independently
+adjudicated human ground truth. Differences in judge
+prompts also prevent attributing all variation solely
+to model architecture. Accordingly, we retain the
+deterministic oracle as the frozen primary instrument
+and treat AI-judge disagreement as a construct-validity
+diagnostic requiring independent human assessment.

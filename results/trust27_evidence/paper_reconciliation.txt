@@ -1,1 +1,1 @@
-PENDING: no matching manuscript found
+PENDING: numerical table requires manual reconciliation; generated main.csv is source of truth; only 45 numerator/denominator cells parsed

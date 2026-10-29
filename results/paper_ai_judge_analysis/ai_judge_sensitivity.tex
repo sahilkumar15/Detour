@@ -1,0 +1,15 @@
+% Automated reviewer sensitivity, NOT human labels.
+\begin{table*}[t]
+\centering\footnotesize
+\caption{Automated evaluator sensitivity on 259 non-pilot proposals. Percentages measure agreement with Detour's frozen machine oracle, not independent human-ground-truth accuracy. Binary $\kappa$ excludes uncertain judgments.}
+\label{tab:ai_judge_sensitivity}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+AI judge & Eq. agree (\%) & Eq. positive overlap (\%) & Forbidden agree (\%) & Eq. $\kappa$ \\
+\midrule
+GPT-OSS 20B & 81.8 & 55.9 & 88.4 & 0.654 \\
+Qwen3.5 35B-A3B & 75.3 & 38.7 & 79.5 & 0.527 \\
+Mistral 24B & 64.5 & 6.5 & 88.8 & 0.045 \\
+\bottomrule
+\end{tabular}
+\end{table*}

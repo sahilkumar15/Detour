@@ -1,0 +1,22 @@
+{
+  "study": "Detour AI-AI judge sensitivity v3",
+  "not_human": true,
+  "role": "D",
+  "primary": "qwen3.5:35b",
+  "fallback": "__NO_FALLBACK__",
+  "active": [
+    "qwen3.5:35b"
+  ],
+  "source_sha256": "8ef880cb70bfd24ef2cd32f59c7b929d473f07d10e0348be6e7c6ad6bc2b681f",
+  "prompts_sha256": "de3ef1cb43e370506a076767e28b7a6cfe957dff89684c2bbd32c95810b1b519",
+  "schema_sha256": "7131ce422091f6aba30cbc9f9a2c5a8a730fff223dc25b1832256f5138100206",
+  "model_digests": {
+    "qwen3.5:35b": "72aac7c28be8ff9b81c2a270eb489c88e6d822a76ec0cb7bf34d965768848567"
+  },
+  "token_limits": [
+    2400,
+    3500
+  ],
+  "algorithm": "deterministic conjunction of four dimension labels",
+  "case_count": 263
+}

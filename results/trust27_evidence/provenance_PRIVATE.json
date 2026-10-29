@@ -1,21 +1,19 @@
 {
-  "captured_utc": "2026-10-28T07:57:06.482213+00:00",
+  "captured_utc": "2026-10-29T01:25:45.645488+00:00",
   "warning": "Current environment is not proof of historical run adapter state.",
   "git_head": {
     "returncode": 0,
-    "text": "8e5ea658dc914225dc85a6dec59504c1e927b0b9\n"
+    "text": "f3461373f5ec01b2a31341dc38c2e518e5f2def8\n"
   },
   "git_dirty": {
     "returncode": 0,
-    "text": " m agentdojo\n?? annotations/private_oracle_v2/\n?? annotations/submission_blinded_v2/\n?? results/.gptoss20-groq-cleanroom.lock\n?? results/.groq-audit-resume.lock\n?? results/backups/\n?? results/grid-v8-gptoss20-groq-cleanroom.jsonl\n?? results/grid-v8-gptoss20-groq-cleanroom.provenance.json\n?? results/reviewer_diagnostics/\n?? results/submission_review-4models/\n?? results/trust27_evidence/\n?? scripts/detour_annotation_workflow.py\n?? scripts/detour_remaining_evidence.py\n?? scripts/finish_groq_audit.py\n?? scripts/fix_detour_annotation_setup.sh\n?? scripts/groq_cleanroom.py\n?? scripts/prepare_detour_annotations.py\n?? scripts/prepare_detour_annotations.py.before_import_fix\n?? scripts/repair_detour_annotation_context.sh\n?? scripts/reviewer_diagnostics.py\n?? scripts/score_human_annotations.py\n?? scripts/takeover_groq_run.sh\n"
+    "text": " m agentdojo\n M results/trust27_evidence/paper_reconciliation.txt\n M results/trust27_evidence/provenance_PRIVATE.json\n M results/trust27_evidence/screen_and_parser_OPEN.md\n M scripts/ai_reviewer_core.py\n?? annotations/ai_review_v2/\n?? annotations/ai_review_v3/\n?? annotations/ai_review_v3_smoke/\n?? annotations/private_oracle_v2/ai_judge_diagnostics/\n?? annotations/private_oracle_v2/four_judge_final_audit/\n?? figures/detour_verified/\n?? logs/qwen35_install.jsonl\n?? results/example.txt\n?? results/paper_ai_judge_analysis/\n?? scripts/ai_reviewer_core.py.before_consistency_fix\n?? scripts/detour_ai_judge_paper_summary.py\n?? scripts/detour_final_paper_figures.py\n?? scripts/detour_post_review_evaluation.py\n?? scripts/detour_submission_readiness.py\n?? scripts/example.py\n?? scripts/run_detour_ai_review_v3.py\n?? scripts/run_detour_extra_judge.py\n"
   },
   "ollama": {
-    "returncode": 0,
-    "text": "ollama version is 0.40.11\n"
+    "unavailable": "[Errno 2] No such file or directory: 'ollama'"
   },
   "ollama_list": {
-    "returncode": 0,
-    "text": "NAME                       ID              SIZE     MODIFIED   \nllama70-detour:latest      94946b526c7e    42 GB    2 days ago    \nmistral24-detour:latest    22351593d392    15 GB    2 days ago    \ngptoss20-detour:latest     a1c927e2b35f    13 GB    2 days ago    \nllama3.3:70b               a6eb4748fd29    42 GB    2 days ago    \nmistral-small3.2:24b       5a408ab55df5    15 GB    2 days ago    \ngpt-oss:20b                f38aa0c53da5    13 GB    2 days ago    \n"
+    "unavailable": "[Errno 2] No such file or directory: 'ollama'"
   },
   "current_agents_sha256": "78c712fd84b505f833ea53dcfd252cb1412f8f54f666437cf7ace860c59c3f7b",
   "trace_sha256": {

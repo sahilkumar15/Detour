@@ -1,0 +1,60 @@
+{
+  "kind": "AI-to-AI sensitivity; NOT human annotation",
+  "dataset_cases": 263,
+  "reviewers": {
+    "A": {
+      "valid": 263,
+      "unresolved": 0,
+      "equivalent": {
+        "no": 194,
+        "yes": 57,
+        "uncertain": 12
+      },
+      "forbidden": {
+        "no": 114,
+        "yes": 139,
+        "uncertain": 10
+      },
+      "models_used": {
+        "gptoss20-detour:latest": 263
+      },
+      "fallback_count": 0,
+      "high_confidence": 246
+    },
+    "B": {
+      "valid": 263,
+      "unresolved": 0,
+      "equivalent": {
+        "no": 250,
+        "yes": 11,
+        "uncertain": 2
+      },
+      "forbidden": {
+        "no": 79,
+        "yes": 184
+      },
+      "models_used": {
+        "mistral24-detour:latest": 263
+      },
+      "fallback_count": 0,
+      "high_confidence": 263
+    }
+  },
+  "agreement": {
+    "equivalent": {
+      "common_cases": 259,
+      "exact_agreement": 0.722007722007722,
+      "binary_pairs": 245,
+      "binary_cohens_kappa": 0.03267528931245756,
+      "uncertain_pairs": 14
+    },
+    "forbidden": {
+      "common_cases": 259,
+      "exact_agreement": 0.8108108108108109,
+      "binary_pairs": 249,
+      "binary_cohens_kappa": 0.6755537736794629,
+      "uncertain_pairs": 10
+    }
+  },
+  "pilot_excluded_from_agreement": 4
+}

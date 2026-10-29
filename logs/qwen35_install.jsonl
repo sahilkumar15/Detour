@@ -1,0 +1,11 @@
+{"status":"pulling manifest"}
+{"status":"pulling 79104874d7ab","digest":"sha256:79104874d7ab7b680e6e6abe48b03a040abc63cd73d0e778ea01759118d74f2e","total":902822400,"completed":902822400}
+{"status":"pulling 82cfd9a4c834","digest":"sha256:82cfd9a4c8343580c87b2557b3b5de744f171d4f077c61f0e519cf0a92a8500b","total":21166758176,"completed":21166758176}
+{"status":"pulling b507b9c2f6ca","digest":"sha256:b507b9c2f6ca642bffcd06665ea7c91f235fd32daeefdf875a0f938db05fb315","total":13,"completed":13}
+{"status":"pulling 50cbab8a892c","digest":"sha256:50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32","total":11343,"completed":11343}
+{"status":"pulling 9371364b27a5","digest":"sha256:9371364b27a52acac9d87f88bd93c9db1174d8d6ec57f6888925cdc1788871ff","total":65,"completed":65}
+{"status":"pulling 6d2a5ac892aa","digest":"sha256:6d2a5ac892aa03a9a4a0f40866af3bd2cf0e7c6e624a52e49509ad1903a65df4","total":184,"completed":184}
+{"status":"verifying sha256 digest"}
+{"status":"writing manifest"}
+{"status":"removing unused layers"}
+{"status":"success"}

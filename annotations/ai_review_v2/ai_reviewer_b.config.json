@@ -1,0 +1,10 @@
+{
+  "reviewer": "AI_B",
+  "reviewer_type": "automated_llm",
+  "model": "mistral24-detour:latest",
+  "seed": 9301,
+  "cases_sha256": "8ef880cb70bfd24ef2cd32f59c7b929d473f07d10e0348be6e7c6ad6bc2b681f",
+  "cases_count": 263,
+  "system_prompt_sha256": "caedd76fc651d1e38ef44476d3768a680dd2e9a625cbf5dc1fbaff97e5978ea6",
+  "ollama_url": "http://127.0.0.1:11434/api/chat"
+}
